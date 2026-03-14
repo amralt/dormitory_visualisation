@@ -1,5 +1,5 @@
-from sqlalchemy import create_engine, Column, Integer, String, Float, Text
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy import Column, Integer, String, Float
+from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 
@@ -36,9 +36,7 @@ class ResidentsBase(Base):
     start_date = Column(String)                     
     end_date = Column(String)                      
     contract_number = Column(String, nullable=True)
-    actual_eviction_date = Column(String, nullable=True
-     
+    actual_eviction_date = Column(String, nullable=True)
     
-engine = create_engine('sqlite:///dogovory.db')
-Base.metadata.create_all(engine) 
-Session = sessionmaker(bind=engine)
+    def __repr__(self):
+        return f"<ResidentsBase(id={self.id}, kontragent={self.kontragent})>"
