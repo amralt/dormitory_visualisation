@@ -40,3 +40,11 @@ class ResidentsBase(Base):
     
     def __repr__(self):
         return f"<ResidentsBase(id={self.id}, kontragent={self.kontragent})>"
+
+class Student(Base):
+    __tablename__ = 'students'
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    room = Column(String)
+    
