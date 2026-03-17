@@ -17,3 +17,5 @@ pip-delete-this-directory.txt
 .idea/
 
 .local/
+
+.pytest_cache
