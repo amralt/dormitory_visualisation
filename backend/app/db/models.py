@@ -1,50 +1,59 @@
-from sqlalchemy import Column, Integer, String, Float
-from sqlalchemy.orm import declarative_base
+from sqlalchemy import Column, create_engine, Integer, String, Float, ForeignKey
+from sqlalchemy.orm import declarative_base, relationship
+
 
 Base = declarative_base()
+engine = create_engine("sqlite:///dogovory.db", echo=True)
+
 
 class ResidentsBase(Base):
     __tablename__ = "dogovory"
-    
-    id = Column(Integer, primary_key=True)
-    period = Column(String)
-    registrator = Column(String)
-    linenumber = Column(Integer)
-    kontragent = Column(String)
-    dogovor_kontragenta = Column(String)
-    fiz_lico = Column(String)
-    service_type = Column(String)
-    organisation = Column(String)
-    isactive = Column(Integer)
-    accomodation_category = Column(String)
-    resident_category = Column(String)
-    rooms_count = Column(Integer)
-    residents_count = Column(Integer)
-    total_area = Column(Integer)
-    living_area = Column(Integer)
-    dormitory = Column(String)
-    floor = Column(Integer)
-    room = Column(Integer)
-    department = Column(String)
-    is_main_record = Column(Integer, default=1) 
-    kinship = Column(String, nullable=True)
-    payment_type = Column(String)              
-    contract_type = Column(String)           
-    kosgu = Column(String, nullable=True)       
-    prefix = Column(String, nullable=True)        
-    sequence_number = Column(Integer, default=0)  
-    start_date = Column(String)                     
-    end_date = Column(String)                      
-    contract_number = Column(String, nullable=True)
-    actual_eviction_date = Column(String, nullable=True)
-    
+
+    linenumber = Column("Номер строки", Integer, primary_key=True)
+    period = Column("Период", String)
+    registrator = Column("Регистратор", String)
+    kontragent = Column("Контрагент", String)
+    dogovor_kontragenta = Column("Договор контрагента", String)
+    fiz_lico = Column("Физическое лицо", String)
+    service_type = Column("Услуга", String)
+    organisation = Column("Организация", String)
+    isactive = Column("Действует", Integer)
+    accomodation_category = Column("Категория жилого помещения", String)
+    resident_category = Column("Категория проживающего", String)
+    rooms_count = Column("Количество комнат", Integer)
+    residents_count = Column("Количество проживающих", Integer)
+    total_area = Column("Общая площадь", Integer)
+    living_area = Column("Жилая площадь", Integer)
+    dormitory = Column("Общежитие", String)
+    floor = Column("Этаж", Integer)
+    room = Column("Комната", Integer)
+    department = Column("Подразделение", String)
+    is_main_record = Column("Главная запись", Integer, default=1)
+    kinship = Column("Степень родства", String, nullable=True)
+    payment_type = Column("Тип оплаты за проживание", String)
+    contract_type = Column("Тип договора проживания", String)
+    kosgu = Column("КОСГУ", String, nullable=True)
+    prefix = Column("Префикс", String, nullable=True)
+    sequence_number = Column("Порядковый номер по префиксу", Integer, default=0)
+    start_date = Column("Дата начала", String)
+    end_date = Column("Дата окончания", String)
+    contract_number = Column("Номер договора", String, nullable=True)
+    actual_eviction_date = Column("Дата фактического выселения", String, nullable=True)
+
+    rooms = relationship("Rooms", back_populates="resident", uselist=False)
+
     def __repr__(self):
-        return f"<ResidentsBase(id={self.id}, kontragent={self.kontragent})>"
+        return f"{self.kontragent}: {self.dormitory} общежитие\n"
 
-class Student(Base):
-    __tablename__ = 'students'
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True)
-    room = Column(String)
-    
+class Rooms(Base):
+    __tablename__ = "rooms"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    linenumber = Column(Integer, ForeignKey("dogovory.Номер строки"), unique=True)
+    krovatka = Column("Кроватка", Integer)  # Номер кроватки
+
+    resident = relationship("ResidentsBase", back_populates="rooms")
+
+    def __repr__(self):
+        return f"<Rooms(id={self.id}, krovatka={self.krovatka}, room={self.room})>"

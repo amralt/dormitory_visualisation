@@ -1,24 +1,8 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from app.db.models import Base 
+'''
+Тут запускается бд
 
-DATABASE_URL = 'sqlite:///dogovory.db'
-engine = create_engine(DATABASE_URL, echo=False)
-Base.metadata.create_all(engine)
-SessionLocal = sessionmaker(bind=engine)
-def get_session():
-    return SessionLocal()
+вообще все, что не относится к crud, model
+'''
 
-from contextlib import contextmanager
-
-@contextmanager
-def session_scope():
-    session = SessionLocal()
-    try:
-        yield session
-        session.commit()
-    except Exception as e:
-        session.rollback()
-        raise e
-    finally:
-        session.close()
+# engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
+# def init_db(session: Session) -> None:
