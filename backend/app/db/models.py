@@ -1,4 +1,4 @@
-from sqlalchemy import Column, create_engine, Integer, String, Float, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, ForeignKey
 from sqlalchemy.orm import declarative_base, relationship
 
 

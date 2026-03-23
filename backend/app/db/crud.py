@@ -1,5 +1,4 @@
-from app.db.models import ResidentsBase, Rooms
-from app.db.db import SessionLocal
+from app.db.models import ResidentsBase
 from sqlalchemy import select, or_, cast, String
 
 
@@ -15,10 +14,10 @@ def get_by_namepart(s: str, session) -> list[ResidentsBase]:
     return db_obj
 
 
-def get_by_number_floorordorm(num: int, session) -> list[ResidentsBase]:
+def get_by_number_floorordorm(num: str, session) -> list[ResidentsBase]:
     stat = select(ResidentsBase).where(
         or_(
-            cast(ResidentsBase.floor, String) == str(num),
+            cast(ResidentsBase.floor, String) == num,
             ResidentsBase.dormitory.like(f"%{num}%"),
         )
     )
@@ -26,10 +25,8 @@ def get_by_number_floorordorm(num: int, session) -> list[ResidentsBase]:
     return db_obj
 
 
-def get_bed_by_resident(session):
-    pass
-
-with SessionLocal() as session:
-    print(
-        *get_by_number_floorordorm("5", session)
-    ) 
+# with Session() as session:
+#     print(
+#         *get_by_number_floorordorm("5", session)
+#     )  # вывод сейчас выглядит очень плохо, но оно работает,
+    # менять буду в зависимости от того, какую инфу нужно выводить дополнительно
