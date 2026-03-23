@@ -1,8 +1,6 @@
-from models import ResidentsBase, Rooms, engine
-from sqlalchemy.orm import sessionmaker
+from app.db.models import ResidentsBase, Rooms
+from app.db.db import SessionLocal
 from sqlalchemy import select, or_, cast, String
-
-Session = sessionmaker(engine)
 
 
 def get_by_room_num(room: int, session) -> list[ResidentsBase]:
@@ -17,10 +15,10 @@ def get_by_namepart(s: str, session) -> list[ResidentsBase]:
     return db_obj
 
 
-def get_by_number_floorordorm(num: str, session) -> list[ResidentsBase]:
+def get_by_number_floorordorm(num: int, session) -> list[ResidentsBase]:
     stat = select(ResidentsBase).where(
         or_(
-            cast(ResidentsBase.floor, String) == num,
+            cast(ResidentsBase.floor, String) == str(num),
             ResidentsBase.dormitory.like(f"%{num}%"),
         )
     )
@@ -28,8 +26,10 @@ def get_by_number_floorordorm(num: str, session) -> list[ResidentsBase]:
     return db_obj
 
 
-with Session() as session:
+def get_bed_by_resident(session):
+    pass
+
+with SessionLocal() as session:
     print(
         *get_by_number_floorordorm("5", session)
-    )  # вывод сейчас выглядит очень плохо, но оно работает,
-    # менять буду в зависимости от того, какую инфу нужно выводить дополнительно
+    ) 

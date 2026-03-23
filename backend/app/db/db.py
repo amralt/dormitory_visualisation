@@ -1,8 +1,19 @@
-'''
-Тут запускается бд
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
-вообще все, что не относится к crud, model
-'''
+SQLALCHEMY_DATABASE_URL = "sqlite:///dogovory.db"
 
-# engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
-# def init_db(session: Session) -> None:
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False}  #
+)
+
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+def get_session():
+    session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()

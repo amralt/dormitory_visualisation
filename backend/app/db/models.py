@@ -3,7 +3,6 @@ from sqlalchemy.orm import declarative_base, relationship
 
 
 Base = declarative_base()
-engine = create_engine("sqlite:///dogovory.db", echo=True)
 
 
 class ResidentsBase(Base):
