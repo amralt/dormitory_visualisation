@@ -8,7 +8,7 @@ from app.main import app
 client = TestClient(app)
 
 def test_get_students_by_floor():
-    response = client.get("/api/floor/1/students")
+    response = client.get("/api/dormirtory/Общежитие 1б/floor/1/students")
     print(f"Response status: {response.status_code}")
     # print(f"Response body: {response.json()}")
     assert response.status_code == 200
