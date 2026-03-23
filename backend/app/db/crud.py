@@ -1,8 +1,5 @@
-from models import ResidentsBase, Rooms, engine
-from sqlalchemy.orm import sessionmaker
+from app.db.models import ResidentsBase
 from sqlalchemy import select, or_, cast, String
-
-Session = sessionmaker(engine)
 
 
 def get_by_room_num(room: int, session) -> list[ResidentsBase]:
@@ -28,8 +25,8 @@ def get_by_number_floorordorm(num: str, session) -> list[ResidentsBase]:
     return db_obj
 
 
-with Session() as session:
-    print(
-        *get_by_number_floorordorm("5", session)
-    )  # вывод сейчас выглядит очень плохо, но оно работает,
+# with Session() as session:
+#     print(
+#         *get_by_number_floorordorm("5", session)
+#     )  # вывод сейчас выглядит очень плохо, но оно работает,
     # менять буду в зависимости от того, какую инфу нужно выводить дополнительно
