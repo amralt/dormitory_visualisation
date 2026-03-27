@@ -1,9 +1,16 @@
 from app.db.models import ResidentsBase
 from sqlalchemy import select, or_, cast, String
+from sqlalchemy.orm import Session
 
 
-def get_by_room_num(room: int, session) -> list[ResidentsBase]:
-    stat = select(ResidentsBase).where(ResidentsBase.room == room)
+def get_by_room_num(dormirtory: str, room: str, session) -> list[ResidentsBase]:
+    print(f"____{room}____")
+    stat = select(ResidentsBase).where(
+        or_(
+            cast(ResidentsBase.room, String) == room,
+            ResidentsBase.room.like(f"%{room}%"),
+        )
+    )
     db_obj = session.scalars(stat).all()
     return db_obj
 
@@ -13,6 +20,12 @@ def get_by_namepart(s: str, session) -> list[ResidentsBase]:
     db_obj = session.scalars(stat).all()
     return db_obj
 
+
+def get_by_id(id: int, session: Session) -> list[ResidentsBase]:
+    stat = select(ResidentsBase).where(ResidentsBase.contract_number)
+    db_obj = session.scalars(stat).all()
+    return db_obj
+    
 
 def get_by_number_floorordorm(num: str, session) -> list[ResidentsBase]:
     stat = select(ResidentsBase).where(
