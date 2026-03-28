@@ -1,15 +1,66 @@
+from fastapi import Depends
+
 from app.db.models import ResidentsBase
-from sqlalchemy import select, or_, cast, String
+from sqlalchemy import select, or_, and_, cast, String
+from sqlalchemy.orm import Session
+
+from app.db.db import get_session
 
 
-def get_by_room_num(room: int, session) -> list[ResidentsBase]:
-    stat = select(ResidentsBase).where(ResidentsBase.room == room)
+def get_by_room_num(dormitory: str, room: str, session) -> list[ResidentsBase]:
+    stat = select(ResidentsBase).where(
+        or_(
+            cast(ResidentsBase.room, String) == room,
+            ResidentsBase.room.like(f"%{room}%"),
+        ),
+        ResidentsBase.dormitory == dormitory,
+    )
     db_obj = session.scalars(stat).all()
     return db_obj
 
 
-def get_by_namepart(s: str, session) -> list[ResidentsBase]:
-    stat = select(ResidentsBase).where(ResidentsBase.kontragent.contains(s))
+def get_by_namepart(s: str, dormitory: str = None, session: Session = None) -> list[ResidentsBase]:
+    if dormitory:
+        stat = select(ResidentsBase).where(
+            or_(
+                ResidentsBase.kontragent.like(f"{s}%"),
+                ResidentsBase.kontragent.like(f"% {s}%")
+            ),
+            ResidentsBase.dormitory == dormitory
+        )
+    else:
+        stat = select(ResidentsBase).where(
+            or_(
+                ResidentsBase.kontragent.like(f"{s}%"),
+                ResidentsBase.kontragent.like(f"% {s}%")
+            )
+        )
+    db_obj = session.scalars(stat).all()
+    return db_obj
+
+
+def get_by_id_dogovor(id: str, dormitory: str = None, session: Session = None) -> list[ResidentsBase]:
+    if dormitory:
+        stat = select(ResidentsBase).where(
+            ResidentsBase.registrator.contains(f"Направление на проживание {id}"),
+            ResidentsBase.dormitory == dormitory
+        )
+        db_obj = session.scalars(stat).all()
+        return db_obj
+    else:
+        return session.query(ResidentsBase).filter(ResidentsBase.registrator.contains(f"Направление на проживание {id}")).all()
+
+
+def get_by_dogovor_and_room(dormitory: str, qwery: str, session) -> list[ResidentsBase]:
+    stat = select(ResidentsBase).where(
+        or_(
+            and_(
+                cast(ResidentsBase.room, String) == qwery,
+                ResidentsBase.dormitory == dormitory,
+            ),
+            ResidentsBase.registrator.contains(f"Направление на проживание {qwery}"),
+        )
+    )
     db_obj = session.scalars(stat).all()
     return db_obj
 

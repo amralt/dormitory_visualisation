@@ -1,8 +1,5 @@
-'''
-хз пока что тут будет.
 
-Может настройки типо: где находится локалхост сайта, нужно ли настраивать CORS, 
-какой порт использовать для сервера, 
-какой порт использовать для сервера БД, (если у нас будет постгре)
-
-'''
+SEARCH_BY_NAME = "SEARCH_BY_NAME"
+SEARCH_BY_ROOM = "SEARCH_BY_ROOM"
+SEARCH_BY_ID = "SEARCH_BY_ID"
+SEARCH_BY_ROOM_AND_ID = "SEARCH_BY_ROOM_AND_ID"

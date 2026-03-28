@@ -19,6 +19,12 @@ def test_get_students_by_floor():
     response = client.get("/api/floor/999/students")
     assert response.status_code == 404
 
+
+def test_get_students_by_rum_num():
+    response = client.get("/api/search/?qwery=333")
+    
+
+
 if __name__ == "__main__":
     test_get_students_by_floor()
     print("All tests passed!")
