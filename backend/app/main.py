@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
 from app.db.models import Base
-from app.db.db import engine  
+from app.db.db import engine
 from app.api.main import api_router
 
 # Создаем экземпляр приложения

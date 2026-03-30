@@ -4,26 +4,12 @@ from typing import Optional
 from app.db.models import ResidentsBase
 from sqlalchemy import select, or_, and_, cast, String
 from sqlalchemy.orm import Session
-
+from app.api.schemas import ResidentFilter
 from app.db.db import get_session
 
 
-##мб лучше создать файл отдельный для этой модельки, но это так..
-class ResidentFilter(BaseModel):
-    period: Optional[str] = None
-    resident_category: Optional[str] = None
-    floor: Optional[int] = None
-    department: Optional[str] = None
-    residents_count: Optional[int] = None
-    dormitory: Optional[str] = None
-    end_date_from: Optional[str] = None
-    end_date_to: Optional[str] = None
-
-
-def get_filtered_residents(db: Session, filters: ResidentFilter):
+def get_filtered_residents(session: Session, filters: ResidentFilter):
     query = select(ResidentsBase)
-    if filters.period:
-        query = query.where(ResidentsBase.period == filters.period)
 
     if filters.resident_category:
         query = query.where(
@@ -39,16 +25,16 @@ def get_filtered_residents(db: Session, filters: ResidentFilter):
     if filters.residents_count is not None:
         query = query.where(ResidentsBase.residents_count == filters.residents_count)
 
-    if filters.end_date_from:
-        query = query.where(ResidentsBase.end_date >= filters.end_date_from)
+    if filters.start_date:
+        query = query.where(ResidentsBase.start_date >= filters.start_date)
 
-    if filters.end_date_to:
-        query = query.where(ResidentsBase.end_date <= filters.end_date_to)
+    if filters.end_date:
+        query = query.where(ResidentsBase.end_date <= filters.end_date)
 
     if filters.dormitory:
         query = query.where(ResidentsBase.dormitory.like(f"%{filters.dormitory}%"))
 
-    return db.scalars(query).all()
+    return session.scalars(query).all()
 
 
 def get_by_room_num(dormitory: str, room: str, session) -> list[ResidentsBase]:
