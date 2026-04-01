@@ -5,6 +5,7 @@ from app.db.models import ResidentsBase
 from sqlalchemy import select, or_, and_, cast, String
 from sqlalchemy.orm import Session
 from app.api.schemas import ResidentFilter
+from typing import Optional
 from app.db.db import get_session
 
 
@@ -105,34 +106,14 @@ def get_by_dogovor_and_room(dormitory: str, qwery: str, session) -> list[Residen
     return db_obj
 
 
-def get_by_number_floorordorm(
-    num: str,
-    session: Session,
-    period: str = None,
-    resident_category: str = None,
-    floor: int = None,
-    department: str = None,
-    residents_count: int = None,
-    end_date_from: str = None,
-    end_date_to: str = None,
-) -> list[ResidentsBase]:
-    filters = ResidentFilter(
-        period=period,
-        resident_category=resident_category,
-        floor=floor,
-        department=department,
-        residents_count=residents_count,
-        end_date_from=end_date_from,
-        end_date_to=end_date_to,
+def get_by_number_floorordorm(num: str, dormitory: str, session: Session) -> list[ResidentsBase]:
+    stat = select(ResidentsBase).where(
+        or_(
+            cast(ResidentsBase.floor, String) == num,
+            ResidentsBase.dormitory.like(f"%{num}%"),
+        ),
+        ResidentsBase.dormitory.like(dormitory),
     )
+    db_obj = session.scalars(stat).all()
 
-    filters.floor = int(num)
-    filters.dormitory = num
-    return get_filtered_residents(session, filters)
-
-
-# with Session() as session:
-#     print(
-#         *get_by_number_floorordorm("5", session)
-#     )  # вывод сейчас выглядит очень плохо, но оно работает,
-# менять буду в зависимости от того, какую инфу нужно выводить дополнительно
+    return db_obj

@@ -3,12 +3,12 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.db.db import get_session
 from app.db.crud import get_filtered_residents
-from app.api.schemas import ResidentFilter
+from app.api.schemas import ResidentFilter, ResidentResponse
 
 router = APIRouter(prefix="/residents", tags=["residents"])
 
 
-@router.get("/")
+@router.get("/", response_model=list[ResidentResponse])
 def get_residents(
     filters: ResidentFilter = Depends(), db: Session = Depends(get_session)
 ):
