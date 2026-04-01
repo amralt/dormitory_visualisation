@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.db.db import get_session
-from app.db.crud import get_filtered_residents
+from app.db.crud import filter
 from app.api.schemas import ResidentFilter, ResidentResponse
 
 router = APIRouter(prefix="/residents", tags=["residents"])
@@ -12,5 +12,5 @@ router = APIRouter(prefix="/residents", tags=["residents"])
 def get_residents(
     filters: ResidentFilter = Depends(), db: Session = Depends(get_session)
 ):
-    residents = get_filtered_residents(db, filters)
+    residents = filter(db, filters)
     return residents

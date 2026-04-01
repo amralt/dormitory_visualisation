@@ -1,5 +1,6 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Dict, List, Optional
+
 
 class ResidentFilter(BaseModel):
     resident_category: Optional[str] = None
@@ -9,6 +10,7 @@ class ResidentFilter(BaseModel):
     dormitory: Optional[str] = None
     start_date: Optional[str] = None
     end_date: Optional[str] = None
+
 
 class ResidentResponse(BaseModel):
     fiz_lico: Optional[str] = None
@@ -23,3 +25,13 @@ class ResidentResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class DormitoryStats(BaseModel):
+    dormitory_name: str
+    total_rooms: int
+    occupied_rooms: int
+    partially_occupied: int
+    free_rooms: int
+    departments_stats: Dict[str, int]
+    total_students: int

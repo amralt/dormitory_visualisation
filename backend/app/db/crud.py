@@ -9,7 +9,7 @@ from typing import Optional
 from app.db.db import get_session
 
 
-def get_filtered_residents(session: Session, filters: ResidentFilter):
+def filter(session: Session, filters: ResidentFilter):
     query = select(ResidentsBase)
 
     if filters.resident_category:
@@ -36,6 +36,64 @@ def get_filtered_residents(session: Session, filters: ResidentFilter):
         query = query.where(ResidentsBase.dormitory.like(f"%{filters.dormitory}%"))
 
     return session.scalars(query).all()
+
+
+def get_dormitory_stats(session: Session, dormitory_name: str) -> dict:
+    rooms_query = (
+        select(ResidentsBase.room)
+        .where(ResidentsBase.dormitory == dormitory_name)
+        .distinct()
+    )
+    all_rooms = session.scalars(rooms_query).all()
+    total_rooms = len(all_rooms)
+    residents_count_query = (
+        select(
+            ResidentsBase.room,
+            func.count(ResidentsBase.linenumber).label("residents_count"),
+        )
+        .where(
+            ResidentsBase.dormitory == dormitory_name,
+            ResidentsBase.room != "",
+            ResidentsBase.room.isnot(None),
+        )
+        .group_by(ResidentsBase.room)
+    )
+
+    room_count = session.execute(residents_count_query).all()
+    occupied = 0
+    partially = 0
+    free = 0
+    room_residents = {}
+    for room, count in room_count:
+        room_residents[room] = count
+        if count == 2:
+            occupied += 1
+        elif count == 1:
+            partially += 1
+    free = total_rooms - (occupied + partially)
+
+    dept_query = (
+        select(
+            ResidentsBase.department,
+            func.count(ResidentsBase.linenumber).label("count"),
+        )
+        .where(ResidentsBase.dormitory == dormitory_name)
+        .group_by(ResidentsBase.department)
+    )
+
+    dept_stats = session.execute(dept_query).all()
+    departments_stats = {dept: count for dept, count in dept_stats}
+    total_students = sum(departments_stats.values())
+
+    return {
+        "dormitory_name": dormitory_name,
+        "total_rooms": total_rooms,
+        "occupied_rooms": occupied,
+        "partially_occupied": partially,
+        "free_rooms": free,
+        "departments_stats": departments_stats,
+        "total_students": total_students,
+    }
 
 
 def get_by_room_num(dormitory: str, room: str, session) -> list[ResidentsBase]:
@@ -106,7 +164,9 @@ def get_by_dogovor_and_room(dormitory: str, qwery: str, session) -> list[Residen
     return db_obj
 
 
-def get_by_number_floorordorm(num: str, dormitory: str, session: Session) -> list[ResidentsBase]:
+def get_by_number_floorordorm(
+    num: str, dormitory: str, session: Session
+) -> list[ResidentsBase]:
     stat = select(ResidentsBase).where(
         or_(
             cast(ResidentsBase.floor, String) == num,
