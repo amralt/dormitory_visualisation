@@ -2,7 +2,7 @@ from fastapi import Depends
 from pydantic import BaseModel
 from typing import Optional
 from app.db.models import ResidentsBase
-from sqlalchemy import select, or_, and_, cast, String
+from sqlalchemy import select, or_, and_, cast, String, func
 from sqlalchemy.orm import Session
 from app.api.schemas import ResidentFilter
 from typing import Optional
@@ -39,13 +39,7 @@ def filter(session: Session, filters: ResidentFilter):
 
 
 def get_dormitory_stats(session: Session, dormitory_name: str) -> dict:
-    rooms_query = (
-        select(ResidentsBase.room)
-        .where(ResidentsBase.dormitory == dormitory_name)
-        .distinct()
-    )
-    all_rooms = session.scalars(rooms_query).all()
-    total_rooms = len(all_rooms)
+    total_rooms = 128  # заглушка для общежития 2
     residents_count_query = (
         select(
             ResidentsBase.room,
@@ -93,6 +87,7 @@ def get_dormitory_stats(session: Session, dormitory_name: str) -> dict:
         "free_rooms": free,
         "departments_stats": departments_stats,
         "total_students": total_students,
+        "max_students": total_rooms * 2,
     }
 
 

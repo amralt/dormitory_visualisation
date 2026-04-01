@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db.db import get_session
 from app.db.crud import get_dormitory_stats
-from app.schemas import DormitoryStats
+from app.api.schemas import DormitoryStats
 
 router = APIRouter(prefix="/dormitory", tags=["dormitory"])
 
