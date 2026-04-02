@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Интерактивный план с цветовым разделением</title>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; margin-top: 30px; background-color: #f4f4f9; padding: 0 15px; }
+        
+        #map-container { max-width: 100%; overflow-x: auto; }
+        #map-container svg { background: white; padding: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 8px; max-width: 100%; height: auto; }
+        
+        /* Общие стили для всех комнат */
+        .room { 
+            cursor: pointer; 
+            transition: fill 0.3s ease, opacity 0.3s ease; /* Плавность для цвета и прозрачности */
+            stroke: #333; /* Темно-серая рамка для всех */
+            stroke-width: 1px;
+        }
+
+        /* Эффект при наведении - делаем комнату чуть прозрачнее */
+        .room:hover { 
+            opacity: 0.7; 
+        }
+
+        /* Класс активной (нажатой) комнаты - всегда фиолетовый */
+        .room.active { 
+            fill: #8a2be2 !important; /* !important, чтобы перебить базовый цвет */
+            opacity: 1;
+        }
+
+        /* --- ЦВЕТОВОЕ РАЗДЕЛЕНИЕ ТИПОВ ПОМЕЩЕНИЙ --- */
+
+        /* Серый - офисы (по умолчанию) */
+        .room.type-office { 
+            fill: #e0e0e0; /* Светло-серый, чтобы была видна рамка */
+        }
+
+        /* Красный - комната директора */
+        .room.type-director { 
+            fill: #ff4d4d; /* Мягкий красный */
+        }
+
+        /* Белый - приёмная */
+        .room.type-reception { 
+            fill: #ffffff; /* Чистый белый */
+        }
+
+        /* Стили модального окна (без изменений) */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-overlay.show { display: flex; }
+        .modal-content { background: white; padding: 25px 40px; border-radius: 12px; max-width: 350px; text-align: center; position: relative; animation: popIn 0.3s ease-out; }
+        @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .close-btn { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: #888; }
+        .close-btn:hover { color: #d9534f; }
+    </style>
+</head>
+<body>
+
+    <h2>План здания (Цветовые зоны)</h2>
+    <div style="margin-bottom: 20px; display: flex; gap: 15px; font-size: 14px;">
+        <div style="display: flex; align-items: center; gap: 5px;"><div style="width: 15px; height: 15px; background: #ff4d4d; border: 1px solid #333;"></div> — Директор</div>
+        <div style="display: flex; align-items: center; gap: 5px;"><div style="width: 15px; height: 15px; background: #ffffff; border: 1px solid #333;"></div> — Приёмная</div>
+        <div style="display: flex; align-items: center; gap: 5px;"><div style="width: 15px; height: 15px; background: #e0e0e0; border: 1px solid #333;"></div> — Офисы</div>
+    </div>
+    
+    <div id="map-container"></div>
+
+    <div class="modal-overlay" id="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="close-modal">&times;</span>
+            <h3 id="modal-title">Заголовок</h3>
+            <p id="modal-info">Информация загружается...</p>
+        </div>
+    </div>
+
+    <script src="map.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
