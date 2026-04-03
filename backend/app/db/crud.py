@@ -157,27 +157,35 @@ def get_by_dogovor_and_room(dormitory: str, qwery: str, session) -> list[Residen
 def get_by_number_floorordorm(
     num: str, dormitory: str, session: Session
 ) -> list[FloorResponse]:
+    print(
+        f"DEBUG: get_by_number_floorordorm called with num={num}, dormitory={dormitory}"
+    )
+
     stat = (
-        select(ResidentsBase, Rooms)
+        select(ResidentsBase, Rooms.krovatka)
         .outerjoin(Rooms, ResidentsBase.linenumber == Rooms.linenumber)
         .where(
             or_(
                 cast(ResidentsBase.floor, String) == num,
                 ResidentsBase.dormitory.like(f"%{num}%"),
             ),
-            ResidentsBase.dormitory.like(dormitory),
+            ResidentsBase.dormitory.like(f"%{dormitory}%"),
         )
     )
     result = session.execute(stat).all()
 
     return [
-        {
-            "kontragent": row[0].kontragent,
-            "room": row[0].room,
-            "floor": row[0].floor,
-            "dormitory": row[0].dormitory,
-            "department": row[0].department,
-            "bed_number": row[1],
-        }
+        FloorResponse(
+            fiz_lico=row[0].fiz_lico,
+            start_date=row[0].start_date,
+            end_date=row[0].end_date,
+            room=str(row[0].room) if row[0].room is not None else None,
+            floor=row[0].floor,
+            dormitory=row[0].dormitory,
+            organisation=row[0].organisation,
+            resident_category=row[0].resident_category,
+            department=row[0].department,
+            krovatka=row[1],
+        )
         for row in result
     ]

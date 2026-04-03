@@ -9,9 +9,7 @@ from app.api.schemas import ResidentResponse, FloorResponse
 floor_router = APIRouter()
 
 
-@floor_router.get(
-    "/floor/{floor_number}/students"
-)
+@floor_router.get("/floor/{floor_number}/students")
 def get_students_by_floor(
     floor_number: str, dormitory: str, session: Session = Depends(get_session)
 ):

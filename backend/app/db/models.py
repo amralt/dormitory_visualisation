@@ -49,7 +49,9 @@ class Rooms(Base):
     __tablename__ = "rooms"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    linenumber = Column(Integer, ForeignKey("dogovory.Номер строки"), unique=True)
+    linenumber = Column(
+        "Номер строки", Integer, ForeignKey("dogovory.Номер строки"), unique=True
+    )
     krovatka = Column("Кроватка", Integer)  # Номер кроватки
 
     resident = relationship("ResidentsBase", back_populates="rooms")
