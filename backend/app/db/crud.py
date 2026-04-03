@@ -1,13 +1,7 @@
-from fastapi import Depends
-from pydantic import BaseModel
-from typing import Optional
 from app.db.models import ResidentsBase, Rooms
 from sqlalchemy import select, or_, and_, cast, String, func
 from sqlalchemy.orm import Session
-from app.api.schemas import ResidentFilter
-from typing import Optional
-from app.db.db import get_session
-from sqlalchemy.orm import joinedload
+from app.api.schemas import ResidentFilter, FloorResponse
 
 
 def filter(session: Session, filters: ResidentFilter):
@@ -162,9 +156,9 @@ def get_by_dogovor_and_room(dormitory: str, qwery: str, session) -> list[Residen
 
 def get_by_number_floorordorm(
     num: str, dormitory: str, session: Session
-) -> list[ResidentsBase]:
+) -> list[FloorResponse]:
     stat = (
-        select(ResidentsBase, Rooms.krovatka)
+        select(ResidentsBase, Rooms)
         .outerjoin(Rooms, ResidentsBase.linenumber == Rooms.linenumber)
         .where(
             or_(
@@ -178,12 +172,12 @@ def get_by_number_floorordorm(
 
     return [
         {
-            "kontragent": row[0],
-            "room": row[1],
-            "floor": row[2],
-            "dormitory": row[3],
-            "department": row[4],
-            "bed_number": row[5],
+            "kontragent": row[0].kontragent,
+            "room": row[0].room,
+            "floor": row[0].floor,
+            "dormitory": row[0].dormitory,
+            "department": row[0].department,
+            "bed_number": row[1],
         }
         for row in result
     ]

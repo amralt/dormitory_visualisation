@@ -27,6 +27,9 @@ class ResidentResponse(BaseModel):
         from_attributes = True
 
 
+class FloorResponse(ResidentResponse):
+    krovatka: Optional[int] = None
+
 class DormitoryStats(BaseModel):
     dormitory_name: str
     total_rooms: int
