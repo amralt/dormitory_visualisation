@@ -8,7 +8,7 @@ from app.api.schemas import ResidentFilter, ResidentResponse
 router = APIRouter(prefix="/residents", tags=["residents"])
 
 
-@router.get("/", response_model=list[ResidentResponse])
+@router.get("/filter", response_model=list[ResidentResponse])
 def get_residents(
     filters: ResidentFilter = Depends(), db: Session = Depends(get_session)
 ):

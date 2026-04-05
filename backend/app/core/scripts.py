@@ -1,5 +1,4 @@
 from app.core.config import SEARCH_BY_NAME, SEARCH_BY_ID, SEARCH_BY_ROOM, SEARCH_BY_ROOM_AND_ID
-# from app.db.crud import 
 
 
 #TODO: можно сделать индикаторы поиска. Задача возможно на будущее
