@@ -18,7 +18,7 @@ from app.core.config import (
 )
 from app.api.schemas import ResidentResponse
 
-search_router = APIRouter()
+search_router = APIRouter(prefix="/residents", tags=["residents"])
 
 
 @search_router.get("/search_students/", response_model=list[ResidentResponse])
