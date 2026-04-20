@@ -1,10 +1,46 @@
 from app.db.models import ResidentsBase, Rooms
 from sqlalchemy import select, or_, and_, cast, String, func
 from sqlalchemy.orm import Session
-from app.api.schemas import ResidentFilter, FloorResponse
+from app.api.schemas import ResidentFilter, FloorResponse, ResidentResponse
 
 
-def filter(session: Session, filters: ResidentFilter):
+def apply_mask(item: ResidentResponse, user: dict):
+    """
+    Применяет правила видимости к объекту ответа.
+    Если это не админ и не свой факультет -> скрываем данные.
+    """
+    # Добавили проверку на случай, если user не передан (None)
+    if not user or user.get("role") == "admin":
+        return item
+    
+    if item.department != user.get("department"):
+        item.fiz_lico = f"Студент факультета {item.department or '???'}"
+        item.start_date = "Скрыто"
+        item.end_date = "Скрыто"
+        item.resident_category = "Скрыто"
+            
+    return item
+
+
+def _to_resident_response(row: ResidentsBase) -> ResidentResponse:
+    """
+    Вспомогательная функция для маппинга модели БД в Pydantic схему.
+    Делает код более чистым и избавляет от дублирования.
+    """
+    return ResidentResponse(
+        fiz_lico=row.fiz_lico,
+        start_date=row.start_date,
+        end_date=row.end_date,
+        room=str(row.room) if row.room is not None else None,
+        floor=row.floor,
+        dormitory=row.dormitory,
+        organisation=row.organisation,
+        resident_category=row.resident_category,
+        department=row.department,
+    )
+
+
+def filter(session: Session, filters: ResidentFilter, user: dict) -> list[ResidentResponse]:
     query = select(ResidentsBase)
 
     if filters.resident_category:
@@ -30,7 +66,9 @@ def filter(session: Session, filters: ResidentFilter):
     if filters.dormitory:
         query = query.where(ResidentsBase.dormitory.like(f"%{filters.dormitory}%"))
 
-    return session.scalars(query).all()
+    db_obj = session.scalars(query).all()
+    # Применяем маску к каждому элементу
+    return [apply_mask(_to_resident_response(row), user) for row in db_obj]
 
 
 def get_dormitory_stats(session: Session, dormitory_name: str) -> dict:
@@ -86,7 +124,7 @@ def get_dormitory_stats(session: Session, dormitory_name: str) -> dict:
     }
 
 
-def get_by_room_num(dormitory: str, room: str, session) -> list[ResidentsBase]:
+def get_by_room_num(dormitory: str, room: str, session: Session, user: dict = None) -> list[ResidentResponse]:
     stat = select(ResidentsBase).where(
         or_(
             cast(ResidentsBase.room, String) == room,
@@ -95,12 +133,12 @@ def get_by_room_num(dormitory: str, room: str, session) -> list[ResidentsBase]:
         ResidentsBase.dormitory == dormitory,
     )
     db_obj = session.scalars(stat).all()
-    return db_obj
+    return [apply_mask(_to_resident_response(row), user) for row in db_obj]
 
 
 def get_by_namepart(
-    s: str, dormitory: str = None, session: Session = None
-) -> list[ResidentsBase]:
+    s: str, dormitory: str = None, session: Session = None, user: dict = None
+) -> list[ResidentResponse]:
     if dormitory:
         stat = select(ResidentsBase).where(
             or_(
@@ -117,30 +155,30 @@ def get_by_namepart(
             )
         )
     db_obj = session.scalars(stat).all()
-    return db_obj
+    return [apply_mask(_to_resident_response(row), user) for row in db_obj]
 
 
 def get_by_id_dogovor(
-    id: str, dormitory: str = None, session: Session = None
-) -> list[ResidentsBase]:
+    id: str, dormitory: str = None, session: Session = None, user: dict = None
+) -> list[ResidentResponse]:
     if dormitory:
         stat = select(ResidentsBase).where(
             ResidentsBase.registrator.contains(f"Направление на проживание {id}"),
             ResidentsBase.dormitory == dormitory,
         )
         db_obj = session.scalars(stat).all()
-        return db_obj
     else:
-        return (
+        db_obj = (
             session.query(ResidentsBase)
             .filter(
                 ResidentsBase.registrator.contains(f"Направление на проживание {id}")
             )
             .all()
         )
+    return [apply_mask(_to_resident_response(row), user) for row in db_obj]
 
 
-def get_by_dogovor_and_room(dormitory: str, qwery: str, session) -> list[ResidentsBase]:
+def get_by_dogovor_and_room(dormitory: str, qwery: str, session: Session, user: dict = None) -> list[ResidentResponse]:
     stat = select(ResidentsBase).where(
         or_(
             and_(
@@ -151,11 +189,11 @@ def get_by_dogovor_and_room(dormitory: str, qwery: str, session) -> list[Residen
         )
     )
     db_obj = session.scalars(stat).all()
-    return db_obj
+    return [apply_mask(_to_resident_response(row), user) for row in db_obj]
 
 
 def get_by_number_floorordorm(
-    num: str, dormitory: str, session: Session
+    num: str, dormitory: str, session: Session, user: dict = None
 ) -> list[FloorResponse]:
     print(
         f"DEBUG: get_by_number_floorordorm called with num={num}, dormitory={dormitory}"
@@ -175,17 +213,20 @@ def get_by_number_floorordorm(
     result = session.execute(stat).all()
 
     return [
-        FloorResponse(
-            fiz_lico=row[0].fiz_lico,
-            start_date=row[0].start_date,
-            end_date=row[0].end_date,
-            room=str(row[0].room) if row[0].room is not None else None,
-            floor=row[0].floor,
-            dormitory=row[0].dormitory,
-            organisation=row[0].organisation,
-            resident_category=row[0].resident_category,
-            department=row[0].department,
-            krovatka=row[1],
+        apply_mask(
+            FloorResponse(
+                fiz_lico=row[0].fiz_lico,
+                start_date=row[0].start_date,
+                end_date=row[0].end_date,
+                room=str(row[0].room) if row[0].room is not None else None,
+                floor=row[0].floor,
+                dormitory=row[0].dormitory,
+                organisation=row[0].organisation,
+                resident_category=row[0].resident_category,
+                department=row[0].department,
+                krovatka=row[1],
+            ),
+            user,
         )
         for row in result
     ]
