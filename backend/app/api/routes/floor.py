@@ -13,7 +13,7 @@ def get_students_by_floor(
     floor_number: str, 
     dormitory: str, 
     session: Session = Depends(get_session), 
-    user: dict = Depends(get_current_user) # Получаем юзера из заголовка
+    user: dict = Depends(get_current_user) 
 ):
     # Передаем юзера в CRUD, чтобы там отработала логика маскирования
     students = get_by_number_floorordorm(

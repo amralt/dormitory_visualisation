@@ -1,4 +1,3 @@
-# app/api/routes/residents.py
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.db.db import get_session
@@ -13,5 +12,5 @@ router = APIRouter(prefix="/residents", tags=["residents"])
 def get_residents(
     filters: ResidentFilter = Depends(), db: Session = Depends(get_session), user: dict = Depends(get_current_user)
 ):
-    residents = filter(db, filters)
+    residents = filter(db, filters, user)
     return residents
