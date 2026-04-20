@@ -3,6 +3,21 @@ from sqlalchemy import select, or_, and_, cast, String, func
 from sqlalchemy.orm import Session
 from app.api.schemas import ResidentFilter, FloorResponse
 
+def apply_mask(item: FloorResponse, user: dict):
+    """
+    Применяет правила видимости к объекту ответа.
+    Если это не админ и не свой факультет -> скрываем данные.
+    """
+    if user.get("role") == "admin":
+        return item
+    
+    if item.department != user.get("department"):
+        item.fiz_lico = f"Студент факультета {item.department or '???'}"
+        item.start_date = "Скрыто"
+        item.end_date = "Скрыто"
+        item.resident_category = "Скрыто"
+            
+    return item
 
 def filter(session: Session, filters: ResidentFilter):
     query = select(ResidentsBase)
@@ -155,7 +170,7 @@ def get_by_dogovor_and_room(dormitory: str, qwery: str, session) -> list[Residen
 
 
 def get_by_number_floorordorm(
-    num: str, dormitory: str, session: Session
+    num: str, dormitory: str, session: Session, user: dict
 ) -> list[FloorResponse]:
     print(
         f"DEBUG: get_by_number_floorordorm called with num={num}, dormitory={dormitory}"
@@ -175,6 +190,7 @@ def get_by_number_floorordorm(
     result = session.execute(stat).all()
 
     return [
+        apply_mask(
         FloorResponse(
             fiz_lico=row[0].fiz_lico,
             start_date=row[0].start_date,
@@ -186,6 +202,8 @@ def get_by_number_floorordorm(
             resident_category=row[0].resident_category,
             department=row[0].department,
             krovatka=row[1],
+        ),
+        user,
         )
         for row in result
     ]

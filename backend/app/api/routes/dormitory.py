@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.db.db import get_session
 from app.db.crud import get_dormitory_stats
 from app.api.schemas import DormitoryStats
+from app.auth import get_current_user
 
 router = APIRouter(prefix="/dormitory", tags=["dormitory"])
 

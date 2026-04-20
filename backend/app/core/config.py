@@ -4,25 +4,26 @@ SEARCH_BY_ROOM = "SEARCH_BY_ROOM"
 SEARCH_BY_ID = "SEARCH_BY_ID"
 SEARCH_BY_ROOM_AND_ID = "SEARCH_BY_ROOM_AND_ID"
 
-
 USERS = [
     {
-        "username": "Ольга Евгеньевна Яковлева",
-        "password": "12345",
+        "id": 1,
+        "username": "admin",
+        "password": "123",
         "role": "admin",
-        "department": None,
+        "available_faculties": ["*"], # Спецсимвол для доступа ко всем
     },
     {
-        "username": "Анастасия Валерьевна Карпенко",
-        "password": "54321",
+        "id": 2,
+        "username": "ff_decan",
+        "password": "123",
         "role": "decan",
-        "department": "ММФ"
+        "available_faculties": ["ФФ"], # Видит ФФ полностью, остальных — анонимно
     },
     {
-        "username": "Алексей Евгеньевич Захаров",
-        "password": "12345",
+        "id": 3,
+        "username": "mmf_decan",
+        "password": "123",
         "role": "decan",
-        "department": "ММФ"
-    },
-
+        "available_faculties": ["ММФ"],
+    }
 ]
