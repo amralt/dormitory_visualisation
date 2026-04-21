@@ -13,7 +13,7 @@ def apply_mask(item: ResidentResponse, user: dict):
     if not user or user.get("role") == "admin":
         return item
     
-    if item.department != user.get("department"):
+    if item.department not in user.get("available_faculties"):
         item.fiz_lico = f"Студент факультета {item.department or '???'}"
         item.start_date = "Скрыто"
         item.end_date = "Скрыто"
