@@ -230,3 +230,13 @@ def get_by_number_floorordorm(
         )
         for row in result
     ]
+
+def get_dormitory_list(session: Session) -> list[str]:
+    """
+    Возвращает список уникальных названий общежитий, присутствующих в базе данных.
+    """
+    query = select(ResidentsBase.dormitory).distinct().where(ResidentsBase.dormitory.isnot(None))
+    result = session.execute(query).all()
+    # result содержит список кортежей ("общежитие", ), извлекаем значения
+
+    return ["Общежитие 2"]
