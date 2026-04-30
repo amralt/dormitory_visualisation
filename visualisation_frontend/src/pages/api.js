@@ -78,3 +78,10 @@ export async function filterResidents(filters = {}) {
 export async function fetchFloorStudents(floorNumber, dormitory) {
   return request(`/api/floor/${floorNumber}/students?dormitory=${encodeURIComponent(dormitory)}`);
 }
+
+// Получить список всех общежитий с флагом visible
+export async function fetchDormitories() {
+  const data = await request('/api/dormitory/');
+  // Ожидаем массив объектов { name: string, visible: boolean }
+  return Array.isArray(data) ? data : [];
+}

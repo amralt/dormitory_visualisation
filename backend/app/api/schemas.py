@@ -38,3 +38,8 @@ class DormitoryStats(BaseModel):
     free_rooms: int
     departments_stats: Dict[str, int]
     total_students: int
+
+class DormitoryItem(BaseModel):
+    name: str
+    visible: bool
+    

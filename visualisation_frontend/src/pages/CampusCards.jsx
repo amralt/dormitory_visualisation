@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { fetchDormitoryStats, searchStudents } from './api';
-
-const dormitoryList = ['1', '2', '1А', '1Б']; // порядок и состав как в старом dormOrder
+import { fetchDormitories, fetchDormitoryStats, searchStudents } from './api';
 
 const CampusCards = ({ onCardClick, onStatClick, onDownloadClick, onLogout, onPersonClick }) => {
   const [peopleSearch, setPeopleSearch] = useState('');
@@ -9,42 +7,51 @@ const CampusCards = ({ onCardClick, onStatClick, onDownloadClick, onLogout, onPe
   const [showPeopleDropdown, setShowPeopleDropdown] = useState(false);
   const [selectedFaculties, setSelectedFaculties] = useState([]);
   const [showFilter, setShowFilter] = useState(false);
-  const [dormsData, setDormsData] = useState({});
+  const [dormsData, setDormsData] = useState({});       // { dormName: stats }
+  const [visibleDorms, setVisibleDorms] = useState([]);  // массив имён видимых общежитий
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Загрузка статистики по всем общежитиям
+  // 1. Загружаем список общежитий, фильтруем visible = true
+  // 2. Для каждого видимого общежития загружаем статистику
   useEffect(() => {
-    const loadAllStats = async () => {
+    const loadAll = async () => {
       setLoading(true);
       setError(null);
       try {
-        const results = await Promise.all(
-          dormitoryList.map(async (id) => {
-            try {
-              const stats = await fetchDormitoryStats(id);
-              return { id, stats };
-            } catch (err) {
-              console.error(`Ошибка загрузки общежития ${id}:`, err);
-              return { id, stats: null };
-            }
-          })
-        );
+        // Получаем список всех общежитий
+        const allDorms = await fetchDormitories();
+        // Отбираем только те, у которых visible === true
+        const visible = allDorms.filter(d => d.visible === true).map(d => d.name);
+        setVisibleDorms(visible);
+
+        // Загружаем статистику для каждого видимого общежития
+        const statsPromises = visible.map(async (name) => {
+          try {
+            const stats = await fetchDormitoryStats(name);
+            return { name, stats };
+          } catch (err) {
+            console.error(`Ошибка загрузки статистики для общежития ${name}:`, err);
+            return { name, stats: null };
+          }
+        });
+        const results = await Promise.all(statsPromises);
         const dataMap = {};
-        results.forEach(({ id, stats }) => {
-          if (stats) dataMap[id] = stats;
+        results.forEach(({ name, stats }) => {
+          if (stats) dataMap[name] = stats;
         });
         setDormsData(dataMap);
       } catch (err) {
-        setError('Не удалось загрузить данные общежитий');
+        console.error(err);
+        setError('Не удалось загрузить список общежитий');
       } finally {
         setLoading(false);
       }
     };
-    loadAllStats();
+    loadAll();
   }, []);
 
-  // Глобальный поиск студентов
+  // Глобальный поиск студентов (без изменений)
   useEffect(() => {
     const loadSearch = async () => {
       const query = peopleSearch.trim();
@@ -67,7 +74,7 @@ const CampusCards = ({ onCardClick, onStatClick, onDownloadClick, onLogout, onPe
     return () => clearTimeout(timer);
   }, [peopleSearch]);
 
-  // Все факультеты (departments) из загруженной статистики
+  // Все факультеты (departments) из загруженной статистики видимых общежитий
   const allFaculties = Array.from(
     new Set(
       Object.values(dormsData).flatMap(data => Object.keys(data.departments_stats || {}))
@@ -75,8 +82,8 @@ const CampusCards = ({ onCardClick, onStatClick, onDownloadClick, onLogout, onPe
   ).sort();
 
   // Фильтрация общежитий по выбранным факультетам (должен быть хотя бы один студент с таким факультетом)
-  const filteredDorms = dormitoryList.filter(id => {
-    const data = dormsData[id];
+  const filteredDorms = visibleDorms.filter(name => {
+    const data = dormsData[name];
     if (!data) return false;
     if (selectedFaculties.length === 0) return true;
     return selectedFaculties.some(fac => data.departments_stats?.[fac] > 0);
@@ -202,22 +209,18 @@ const CampusCards = ({ onCardClick, onStatClick, onDownloadClick, onLogout, onPe
         )}
 
         <div className="cards-grid">
-          {filteredDorms.map(id => {
-            const data = dormsData[id];
+          {filteredDorms.map(name => {
+            const data = dormsData[name];
             if (!data) return null;
-            // Подготовка данных для отображения (адаптируем под моковые поля)
             const total = data.total_rooms;
             const occupied = data.occupied_rooms;
             const partially = data.partially_occupied;
             const free = data.free_rooms;
             const totalStudents = data.total_students;
-            // Резерв и ремонт в API нет, оставляем 0
-            const res = 0;
-            const rep = 0;
             return (
-              <div key={id} className="dorm-card">
+              <div key={name} className="dorm-card">
                 <div className="card-header-dorm">
-                  <span>Общежитие №{id}</span>
+                  <span>Общежитие {name}</span>
                 </div>
                 <div className="card-body-dorm">
                   <div className="card-stats">
@@ -254,7 +257,7 @@ const CampusCards = ({ onCardClick, onStatClick, onDownloadClick, onLogout, onPe
                   </div>
                 </div>
                 <div className="card-footer-dorm">
-                  <button className="go-btn" onClick={() => onCardClick(id)}>
+                  <button className="go-btn" onClick={() => onCardClick(name)}>
                     Перейти
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <line x1="5" y1="12" x2="19" y2="12"></line>
