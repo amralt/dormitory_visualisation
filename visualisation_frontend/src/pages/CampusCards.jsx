@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { fetchDormitories, fetchDormitoryStats, searchStudents } from './api';
 
-const CampusCards = ({ onCardClick, onStatClick, onDownloadClick, onLogout, onPersonClick }) => {
+const CampusCards = ({ onCardClick, onStatClick, onDownloadClick, onLogout, onPersonClick, userName }) => {
   const [peopleSearch, setPeopleSearch] = useState('');
   const [filteredPeople, setFilteredPeople] = useState([]);
   const [showPeopleDropdown, setShowPeopleDropdown] = useState(false);
@@ -191,7 +191,7 @@ const CampusCards = ({ onCardClick, onStatClick, onDownloadClick, onLogout, onPe
           <button className="stat-btn" onClick={onStatClick}>СТАТИСТИКА</button>
           <div className="user-profile">
             <div className="user-avatar">ПН</div>
-            <span className="user-name">Пушкарев Николай</span>
+            <span className="user-name">{userName}</span>
           </div>
           <button className="logout-btn-icon" title="Выйти" onClick={onLogout}>
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>

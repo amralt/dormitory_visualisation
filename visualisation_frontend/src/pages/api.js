@@ -46,6 +46,7 @@ export async function login(username, password) {
   // Предполагаем, что сервер возвращает объект с user_id
   if (data && data.user_id) {
     localStorage.setItem('userId', data.user_id);
+    localStorage.setItem('userName', data.username);
   }
   return data;
 }

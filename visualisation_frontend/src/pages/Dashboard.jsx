@@ -21,7 +21,7 @@ const barColors = ['#1e88e5', '#8e24aa', '#43a047', '#fb8c00', '#e53935', '#00ac
 // const dormitoryList = ['Общежитие 3', 'Общежитие 2', 'Общежитие 3 1А', 'Общежитие 1Б'];
 const dormitoryList = ['Общежитие 2'];
 
-const Dashboard = ({ dormId, onBack, onLogout, onDownloadClick }) => {
+const Dashboard = ({ dormId, onBack, onLogout, onDownloadClick, userName }) => {
   const dropdownRef = useRef(null);
   const pieRef = useRef(null);
   const barRef = useRef(null);
@@ -194,7 +194,7 @@ const Dashboard = ({ dormId, onBack, onLogout, onDownloadClick }) => {
           <button className="stat-btn active">СТАТИСТИКА</button>
           <div className="user-profile">
             <div className="user-avatar">ПН</div>
-            <span className="user-name">Пушкарев Николай</span>
+            <span className="user-name">{userName}</span>
           </div>
           <button className="logout-btn-icon" title="Выйти" onClick={onLogout}>
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>

@@ -345,7 +345,7 @@ const DormMap = ({ dormId, onBack, onGoToDashboard, onLogout, initialRoomId, onD
                     {/* +++ Кнопка "СКАЧАТЬ ТАБЛИЦУ" */}
                     <button className="stat-btn" onClick={onDownloadClick}>СКАЧАТЬ ТАБЛИЦУ</button>
                     <button className="stat-btn" onClick={onGoToDashboard}>СТАТИСТИКА</button>
-                    <div className="user-profile"><div className="user-avatar">ПН</div><span className="user-name">Пушкарев Николай</span></div>
+                    <div className="user-profile"><div className="user-avatar">ПН</div><span className="user-name">{userName}</span></div>
                     <button className="logout-btn-icon" onClick={onLogout}>Выход</button>
                 </div>
             </header>

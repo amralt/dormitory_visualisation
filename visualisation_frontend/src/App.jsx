@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // добавлен useEffect
 import LoginPage from './pages/LoginPage';
 import CampusCards from './pages/CampusCards';
 import Dashboard from './pages/Dashboard';
@@ -9,19 +9,37 @@ import DormMap from './pages/DormMap';
 function App() {
   const [currentPage, setCurrentPage] = useState('login');
   const [selectedDorm, setSelectedDorm] = useState(null);
-  const [selectedRoom, setSelectedRoom] = useState(null);   // <-- новое состояние
+  const [selectedRoom, setSelectedRoom] = useState(null);
+  // const [loading, setLoading] = useState(true); // 1. флаг загрузки при проверке сессии
+  const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState('');   // <-- новое
+
+  useEffect(() => {
+    const userId = localStorage.getItem('userId');
+    const storedUserName = localStorage.getItem('userName');
+    if (userId) {
+      setCurrentPage('cards');
+      if (storedUserName) setUserName(storedUserName);
+    }
+    setLoading(false);
+  }, []);
 
   const handleLoginSuccess = () => {
+    // после успешного логина имя уже в localStorage, обновляем состояние
+    setUserName(localStorage.getItem('userName') || '');
     setCurrentPage('cards');
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userName');      // <-- чистим
+    setUserName('');
     setSelectedDorm(null);
     setSelectedRoom(null);
     setCurrentPage('login');
   };
 
-  // Клик по карточке общежития → идём на сводку по этажам
+  // Все остальные обработчики остаются без изменений
   const handleCardClick = (dormId) => {
     setSelectedDorm(dormId);
     setSelectedRoom(null);
@@ -36,19 +54,22 @@ function App() {
     setCurrentPage('download');
   };
 
-  // Новый обработчик: переход на карту с конкретной комнатой (из поиска по людям)
   const handlePersonClick = (dormId, roomId) => {
     setSelectedDorm(dormId);
     setSelectedRoom(roomId);
     setCurrentPage('dormMap');
   };
 
-  // Переход на карту из сводки (без комнаты)
   const handleOpenDormMap = (dormId) => {
     setSelectedDorm(dormId);
     setSelectedRoom(null);
     setCurrentPage('dormMap');
   };
+
+  // 4. Пока идёт проверка localStorage, ничего не рендерим
+  if (loading) {
+    return null; // или <div className="loader">Загрузка...</div>
+  }
 
   return (
     <div className="App">
@@ -62,7 +83,8 @@ function App() {
           onStatClick={handleGoToDashboard}
           onDownloadClick={handleGoToDownload}
           onLogout={handleLogout}
-          onPersonClick={handlePersonClick}    // <-- передаём новый пропс
+          onPersonClick={handlePersonClick}
+          userName={userName}
         />
       )}
 
@@ -74,13 +96,14 @@ function App() {
           onDownloadClick={handleGoToDownload}
           onLogout={handleLogout}
           onOpenMap={handleOpenDormMap}
+          userName={userName}
         />
       )}
 
       {currentPage === 'dormMap' && (
         <DormMap
           dormId={selectedDorm}
-          initialRoomId={selectedRoom}        // <-- передаём ID комнаты
+          initialRoomId={selectedRoom}
           onBack={() => {
             setSelectedRoom(null);
             setCurrentPage('dormStats');
@@ -88,6 +111,7 @@ function App() {
           onGoToDashboard={handleGoToDashboard}
           onDownloadClick={handleGoToDownload}
           onLogout={handleLogout}
+          //  userName={userName}
         />
       )}
 
@@ -99,6 +123,7 @@ function App() {
           }}
           onDownloadClick={handleGoToDownload}
           onLogout={handleLogout}
+          userName={userName}
         />
       )}
 
