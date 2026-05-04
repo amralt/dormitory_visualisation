@@ -118,7 +118,7 @@ const DormitoryStats = ({ dormId, onBack, onGoToDashboard, onDownloadClick, onLo
               {showFilter && (
                 <div className="header-filter-dropdown show">
                   <b>Факультеты:</b>
-                  {["МехМат", "ФизФак", "ФИТ", "Эконом", "ИМПЗ"].map(fac => (
+                  {["ММФ", "ФФ", "ФИТ", "ЭФ", "ИМПЗ"].map(fac => (
                     <label key={fac}>
                       <input 
                         type="checkbox" 

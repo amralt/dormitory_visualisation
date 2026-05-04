@@ -5,12 +5,12 @@ import Dashboard from './pages/Dashboard';
 import DormitoryStats from './pages/DormitoryStats';
 import Download from './pages/Download';
 import DormMap from './pages/DormMap';
+import Header from './components/Header';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('login');
   const [selectedDorm, setSelectedDorm] = useState(null);
   const [selectedRoom, setSelectedRoom] = useState(null);
-  // const [loading, setLoading] = useState(true); // 1. флаг загрузки при проверке сессии
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState('');   // <-- новое
 
@@ -32,7 +32,7 @@ function App() {
 
   const handleLogout = () => {
     localStorage.removeItem('userId');
-    localStorage.removeItem('userName');      // <-- чистим
+    localStorage.removeItem('userName');      
     setUserName('');
     setSelectedDorm(null);
     setSelectedRoom(null);
