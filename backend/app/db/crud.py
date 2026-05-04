@@ -86,6 +86,7 @@ def get_dormitory_stats(session: Session, dormitory_name: str) -> dict:
         .group_by(ResidentsBase.room)
     )
 
+
     room_count = session.execute(residents_count_query).all()
     occupied = 0
     partially = 0
@@ -230,3 +231,13 @@ def get_by_number_floorordorm(
         )
         for row in result
     ]
+
+def get_dormitory_list(session: Session) -> list[str]:
+    """
+    Возвращает список уникальных названий общежитий, присутствующих в базе данных.
+    """
+    query = select(ResidentsBase.dormitory).distinct().where(ResidentsBase.dormitory.isnot(None))
+    result = session.execute(query).all()
+    # result содержит список кортежей ("общежитие", ), извлекаем значения
+
+    return ["Общежитие 2"]

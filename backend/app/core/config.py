@@ -27,3 +27,13 @@ USERS = [
         "available_faculties": ["ММФ"],
     }
 ]
+
+DORMITORIES = [
+    {"name": "Общежитие 1а", "visible": False},
+    {"name": "Общежитие 1б", "visible": False},
+    {"name": "Общежитие 2", "visible": True},
+    {"name": "Общежитие 3", "visible": False},
+    {"name": "Общежитие 5", "visible": False},
+    {"name": "Общежитие 6", "visible": False},
+    {"name": "Общежитие 8", "visible": False},
+]
