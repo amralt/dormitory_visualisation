@@ -86,6 +86,7 @@ def get_dormitory_stats(session: Session, dormitory_name: str) -> dict:
         .group_by(ResidentsBase.room)
     )
 
+
     room_count = session.execute(residents_count_query).all()
     occupied = 0
     partially = 0

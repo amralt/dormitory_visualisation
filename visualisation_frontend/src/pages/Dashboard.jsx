@@ -18,7 +18,8 @@ const customBgPlugin = {
 const pieColors = ['#e53935', '#43a047', '#ffb300', '#8e24aa'];
 const barColors = ['#1e88e5', '#8e24aa', '#43a047', '#fb8c00', '#e53935', '#00acc1', '#3949ab', '#f4511e', '#7cb342', '#d81b60'];
 
-const dormitoryList = ['1', '2', '1А', '1Б'];
+// const dormitoryList = ['Общежитие 3', 'Общежитие 2', 'Общежитие 3 1А', 'Общежитие 1Б'];
+const dormitoryList = ['Общежитие 2'];
 
 const Dashboard = ({ dormId, onBack, onLogout, onDownloadClick }) => {
   const dropdownRef = useRef(null);
@@ -43,6 +44,8 @@ const Dashboard = ({ dormId, onBack, onLogout, onDownloadClick }) => {
           dormitoryList.map(async (id) => {
             try {
               const stats = await fetchDormitoryStats(id);
+              // TODO: написать в бекенде обработчик найденных или ненайденных общаг. чтобы не показывать в списке общаги которых на самом деле нет.
+              console.log(id);
               return { id, stats };
             } catch (err) {
               console.error(`Ошибка загрузки ${id}:`, err);
