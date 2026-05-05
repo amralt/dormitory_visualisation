@@ -9,7 +9,7 @@ services:
       - "8000:8000"
     volumes:
       - ./backend/app:/app/app
-      - ./backend/data:/app/data
+      - ./backend/dogovory.db:/app/dogovory.db
     environment:
       - PYTHONPATH=/app
     depends_on:
