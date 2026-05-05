@@ -73,70 +73,89 @@ function App() {
 
   return (
     <div className="App">
+
+      {currentPage !== 'login' && (
+          <Header
+          userName={userName}
+          onLogout={handleLogout}
+          onStatClick={() => setCurrentPage('dashboard')}
+          onDownloadClick={() => setCurrentPage('download')}
+          onPersonClick={(dormId, roomId) => {
+            setSelectedDorm(dormId);
+            setSelectedRoom(roomId);
+            setCurrentPage('dormMap');
+          }}
+          onLogoClick={() => setCurrentPage('cards')}
+        />
+      )}
+
+    <div className="page-content">
+  
       {currentPage === 'login' && (
         <LoginPage onLoginSuccess={handleLoginSuccess} />
       )}
 
       {currentPage === 'cards' && (
         <CampusCards
-          onCardClick={handleCardClick}
+        onCardClick={handleCardClick}
           onStatClick={handleGoToDashboard}
           onDownloadClick={handleGoToDownload}
           onLogout={handleLogout}
           onPersonClick={handlePersonClick}
           userName={userName}
-        />
-      )}
+          />
+        )}
 
       {currentPage === 'dormStats' && (
         <DormitoryStats
-          dormId={selectedDorm}
-          onBack={() => setCurrentPage('cards')}
-          onGoToDashboard={handleGoToDashboard}
-          onDownloadClick={handleGoToDownload}
-          onLogout={handleLogout}
-          onOpenMap={handleOpenDormMap}
-          userName={userName}
+        dormId={selectedDorm}
+        onBack={() => setCurrentPage('cards')}
+        onGoToDashboard={handleGoToDashboard}
+        onDownloadClick={handleGoToDownload}
+        onLogout={handleLogout}
+        onOpenMap={handleOpenDormMap}
+        userName={userName}
         />
       )}
 
       {currentPage === 'dormMap' && (
         <DormMap
-          dormId={selectedDorm}
-          initialRoomId={selectedRoom}
-          onBack={() => {
-            setSelectedRoom(null);
-            setCurrentPage('dormStats');
-          }}
-          onGoToDashboard={handleGoToDashboard}
-          onDownloadClick={handleGoToDownload}
-          onLogout={handleLogout}
-          //  userName={userName}
+        dormId={selectedDorm}
+        initialRoomId={selectedRoom}
+        onBack={() => {
+          setSelectedRoom(null);
+          setCurrentPage('dormStats');
+        }}
+        onGoToDashboard={handleGoToDashboard}
+        onDownloadClick={handleGoToDownload}
+        onLogout={handleLogout}
+        //  userName={userName}
         />
       )}
 
       {currentPage === 'dashboard' && (
         <Dashboard
-          dormId={selectedDorm}
-          onBack={() => {
-            selectedDorm ? setCurrentPage('dormStats') : setCurrentPage('cards');
-          }}
-          onDownloadClick={handleGoToDownload}
-          onLogout={handleLogout}
-          userName={userName}
+        dormId={selectedDorm}
+        onBack={() => {
+          selectedDorm ? setCurrentPage('dormStats') : setCurrentPage('cards');
+        }}
+        onDownloadClick={handleGoToDownload}
+        onLogout={handleLogout}
+        userName={userName}
         />
       )}
 
       {currentPage === 'download' && (
         <Download
-          onBack={() => {
-            setCurrentPage('cards');
-            setSelectedDorm(null);
-            setSelectedRoom(null);
+        onBack={() => {
+          setCurrentPage('cards');
+          setSelectedDorm(null);
+          setSelectedRoom(null);
           }}
           onLogout={handleLogout}
         />
       )}
+      </div>
     </div>
   );
 }

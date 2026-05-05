@@ -369,54 +369,6 @@ useEffect(() => {
 
   return (
     <div className="dorm-map-wrapper" style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* Шапка */}
-      <header className="top-navbar" style={{ zIndex: 1000 }}>
-        <div className="nav-left" onClick={onBack} style={{ cursor: 'pointer' }}>
-          <div className="n-star-logo"><span className="n-char">N</span><span className="star-char">*</span></div>
-          <span>СтудГородок</span>
-        </div>
-        <div className="search-container">
-          <div className="search-row">
-            <div className="search-input-wrapper" ref={globalSearchContainerRef}>
-              <input
-                ref={globalSearchRef}
-                type="text"
-                className="header-search-input"
-                placeholder="Глобальный поиск..."
-                onChange={executeGlobalSearch}
-                onFocus={() => globalSearchResults.length > 0 && setShowGlobalDropdown(true)}
-              />
-              {showGlobalDropdown && (
-                <div className="search-results-dropdown" style={{ display: 'block' }}>
-                  {globalSearchResults.length ? globalSearchResults.map((s, i) => (
-                    <div key={i} className="search-result-item" onClick={() => goToRoom(s.room)}>
-                      <div className="res-name">{s.name}</div>
-                      <div className="res-details">Общ.{s.dorm} | Комн.{s.room} | {s.fac}</div>
-                    </div>
-                  )) : <div className="no-res">Нет результатов</div>}
-                </div>
-              )}
-            </div>
-            <div className="header-filter-wrapper" ref={filterContainerRef}>
-              <button className="filter-btn" onClick={() => setShowGlobalFilterDropdown(!showGlobalFilterDropdown)}>Фильтры</button>
-              {showGlobalFilterDropdown && (
-                <div className="header-filter-dropdown show" style={{ right: 0, left: 'auto' }}>
-                  {['МехМат','ФизФак','ФИТ','Эконом'].map(fac => (
-                    <label key={fac}><input type="checkbox" checked={activeGlobalFaculties.includes(fac)}
-                      onChange={() => setActiveGlobalFaculties(p => p.includes(fac) ? p.filter(x => x !== fac) : [...p, fac])} /> {fac}</label>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="nav-right">
-          <button className="stat-btn" onClick={onDownloadClick}>СКАЧАТЬ ТАБЛИЦУ</button>
-          <button className="stat-btn" onClick={onGoToDashboard}>СТАТИСТИКА</button>
-          <div className="user-profile"><div className="user-avatar">ПН</div><span className="user-name">{userName}</span></div>
-          <button className="logout-btn-icon" onClick={onLogout}>Выход</button>
-        </div>
-      </header>
 
       {/* Основная область */}
       <div className="app-body" style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
