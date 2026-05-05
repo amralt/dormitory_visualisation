@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
 import { Pie, Bar } from 'react-chartjs-2';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
-import { fetchDormitoryStats } from './api';
+import { fetchDormitoryStats, fetchDormitories } from './api';
+import './Dashboard.css'
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, ChartDataLabels);
 
@@ -18,9 +19,6 @@ const customBgPlugin = {
 const pieColors = ['#e53935', '#43a047', '#ffb300', '#8e24aa'];
 const barColors = ['#1e88e5', '#8e24aa', '#43a047', '#fb8c00', '#e53935', '#00acc1', '#3949ab', '#f4511e', '#7cb342', '#d81b60'];
 
-// const dormitoryList = ['Общежитие 3', 'Общежитие 2', 'Общежитие 3 1А', 'Общежитие 1Б'];
-const dormitoryList = ['Общежитие 2'];
-
 const Dashboard = ({ dormId, onBack, onLogout, onDownloadClick, userName }) => {
   const dropdownRef = useRef(null);
   const pieRef = useRef(null);
@@ -29,54 +27,67 @@ const Dashboard = ({ dormId, onBack, onLogout, onDownloadClick, userName }) => {
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedDorms, setSelectedDorms] = useState([]);
-  const [draftSelected, setDraftSelected] = useState([]);
   const [statsMap, setStatsMap] = useState({});
+  const [availableDorms, setAvailableDorms] = useState([]); // имена видимых общежитий
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showAllFaculties, setShowAllFaculties] = useState(false);
 
-  // Загружаем статистику для всех общежитий при монтировании
+  // 1. Загружаем список видимых общежитий
+  // 2. Затем для них загружаем статистику
   useEffect(() => {
-    const loadAllStats = async () => {
+    const loadDormsAndStats = async () => {
       setLoading(true);
       setError(null);
       try {
+        // Получаем все общежития и фильтруем visible === true
+        const allDorms = await fetchDormitories();
+        const visibleDorms = allDorms.map(d => d.name);
+        setAvailableDorms(visibleDorms);
+
+        if (visibleDorms.length === 0) {
+          setError('Нет доступных общежитий для отображения');
+          setLoading(false);
+          return;
+        }
+
+        // Загружаем статистику для каждого видимого общежития
         const results = await Promise.all(
-          dormitoryList.map(async (id) => {
+          visibleDorms.map(async (name) => {
             try {
-              const stats = await fetchDormitoryStats(id);
-              // TODO: написать в бекенде обработчик найденных или ненайденных общаг. чтобы не показывать в списке общаги которых на самом деле нет.
-              console.log(id);
-              return { id, stats };
+              const stats = await fetchDormitoryStats(name);
+              return { name, stats };
             } catch (err) {
-              console.error(`Ошибка загрузки ${id}:`, err);
-              return { id, stats: null };
+              console.error(`Ошибка загрузки статистики для ${name}:`, err);
+              return { name, stats: null };
             }
           })
         );
         const map = {};
-        results.forEach(({ id, stats }) => {
-          if (stats) map[id] = stats;
+        results.forEach(({ name, stats }) => {
+          if (stats) map[name] = stats;
         });
         setStatsMap(map);
       } catch (err) {
-        setError('Не удалось загрузить статистику');
+        console.error(err);
+        setError('Не удалось загрузить данные об общежитиях');
       } finally {
         setLoading(false);
       }
     };
-    loadAllStats();
+    loadDormsAndStats();
   }, []);
 
-  // Установка выбранных общежитий при изменении dormId или загрузке данных
+  // Установка выбранных общежитий при изменении dormId или загрузке списка
   useEffect(() => {
-    if (dormId && statsMap[dormId]) {
+    if (availableDorms.length === 0) return;
+    if (dormId && availableDorms.includes(dormId)) {
       setSelectedDorms([dormId]);
-      setDraftSelected([dormId]);
-    } else if (Object.keys(statsMap).length > 0) {
-      setSelectedDorms(dormitoryList);
-      setDraftSelected(dormitoryList);
+    } else {
+      // Если не передан конкретный dormId — выбираем все видимые общежития
+      setSelectedDorms(availableDorms);
     }
-  }, [dormId, statsMap]);
+  }, [dormId, availableDorms]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -111,13 +122,14 @@ const Dashboard = ({ dormId, onBack, onLogout, onDownloadClick, userName }) => {
 
   const { agg, sortedFacs } = getAggregatedData();
 
-  let titleText = selectedDorms.length === dormitoryList.length ? "Общая статистика: Студгородок" :
-                  selectedDorms.length === 1 ? `Статистика: Общежитие №${selectedDorms[0]}` :
+  // Текст заголовка и кнопки в зависимости от выбранных общежитий
+  let titleText = selectedDorms.length === availableDorms.length ? "Общая статистика: Студгородок" :
+                  selectedDorms.length === 1 ? `Статистика: ${selectedDorms[0].replace('Общежитие ', 'Общ. №')}` :
                   selectedDorms.length === 0 ? "Нет выбранных общежитий" : `Суммарная статистика (${selectedDorms.length} общ.)`;
 
-  let btnText = selectedDorms.length === 1 ? `Общежитие №${selectedDorms[0]} ▼` :
-                selectedDorms.length === 0 ? "Выберите общежития ▼" :
-                selectedDorms.length === dormitoryList.length ? "Весь Студгородок ▼" : `Выбрано: ${selectedDorms.length} общ. ▼`;
+  let btnText = selectedDorms.length === 1 ? selectedDorms[0].replace('Общежитие ', 'Общ. №') :
+                selectedDorms.length === 0 ? "Выберите общежития" :
+                selectedDorms.length === availableDorms.length ? "Весь Студгородок" : `Выбрано: ${selectedDorms.length} общ.`;
 
   const pieData = {
     labels: ['Полностью занятые', 'Частично занятые', 'Свободные', 'Ремонт/Резерв (нет данных)'],
@@ -175,25 +187,10 @@ const Dashboard = ({ dormId, onBack, onLogout, onDownloadClick, userName }) => {
   return (
     <>
       <div className="app-container">
-        <nav className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
-          <div className="sidebar-header">
-            <span className="menu-text" style={{ fontWeight: 'bold', color: 'var(--text-muted)' }}>НАВИГАЦИЯ</span>
-            <button className="toggle-btn" onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-            </button>
-          </div>
-          <ul className="menu-list">
-            <li className="menu-item" onClick={onBack}>
-              <div className="menu-icon">📍</div><span className="menu-text">Назад к списку</span>
-            </li>
-            <li className="menu-item active">
-              <div className="menu-icon">📊</div><span className="menu-text">Дашборды</span>
-            </li>
-          </ul>
-        </nav>
-
         <main className="main-content">
           <div className="page-header">
+            <button style={{marginRight: 0}} className="back-btn" onClick={onBack}>← Вернуться к списку</button>
+
             <h1>{titleText}</h1>
             <div className="dropdown-wrapper" ref={dropdownRef}>
               <button className="dropdown-btn" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
@@ -202,27 +199,26 @@ const Dashboard = ({ dormId, onBack, onLogout, onDownloadClick, userName }) => {
               {isDropdownOpen && (
                 <div className="dropdown-menu">
                   <div className="dropdown-actions-top">
-                    <button className="text-btn" onClick={() => setDraftSelected(dormitoryList)}>Выбрать все</button>
-                    <button className="text-btn" onClick={() => setDraftSelected([])}>Сбросить</button>
+                    <button className="text-btn" onClick={() => setSelectedDorms(availableDorms)}>Выбрать все</button>
+                    <button className="text-btn" onClick={() => setSelectedDorms([])}>Сбросить</button>
                   </div>
                   <div className="checkbox-grid">
-                    {dormitoryList.map(id => (
-                      <label key={id} className="checkbox-item">
+                    {availableDorms.map(name => (
+                      <label key={name} className="checkbox-item">
                         <input 
                           type="checkbox" 
-                          checked={draftSelected.includes(id)}
+                          checked={selectedDorms.includes(name)}
                           onChange={(e) => {
-                            if (e.target.checked) setDraftSelected([...draftSelected, id]);
-                            else setDraftSelected(draftSelected.filter(d => d !== id));
+                            if (e.target.checked) {
+                              setSelectedDorms(prev => [...prev, name]);
+                            } else {
+                              setSelectedDorms(prev => prev.filter(d => d !== name));
+                            }
                           }}
-                        /> Общ. №{id}
+                        /> {name.replace('Общежитие ', 'Общ. №')}
                       </label>
                     ))}
                   </div>
-                  <button className="apply-btn" onClick={() => {
-                    setSelectedDorms(draftSelected);
-                    setIsDropdownOpen(false);
-                  }}>Показать статистику</button>
                 </div>
               )}
             </div>
@@ -258,15 +254,35 @@ const Dashboard = ({ dormId, onBack, onLogout, onDownloadClick, userName }) => {
                 <div className="stat-line"><span>Свободные:</span> <span className="stat-val" style={{ color: '#43a047' }}>{agg.free}</span></div>
                 <div className="stat-line"><span>Всего студентов:</span> <span className="stat-val">{agg.totalStudents}</span></div>
               </div>
-              <span className="clickable-text">Подробные списки комнат ▶</span>
             </div>
 
             <div className="stat-block">
               <h4>Проживающие по факультетам</h4>
               <div className="dynamic-stat-list">
-                {sortedFacs.length > 0 ? sortedFacs.map(f => (
-                  <div key={f.label} className="stat-line"><span>{f.label}:</span> <span className="stat-val">{f.val} чел.</span></div>
-                )) : <div className="stat-line"><span>Нет данных</span></div>}
+                {sortedFacs.length > 0 ? (
+                  <>
+                    {sortedFacs
+                      .slice(0, showAllFaculties ? sortedFacs.length : 5)
+                      .map(f => (
+                        <div key={f.label} className="stat-line">
+                          <span>{f.label}:</span>
+                          <span className="stat-val">{f.val} чел.</span>
+                        </div>
+                      ))
+                    }
+                    {sortedFacs.length > 5 && (
+                      <button
+                        className="text-btn"
+                        style={{ marginTop: '8px', padding: 0, fontSize: '14px' }}
+                        onClick={() => setShowAllFaculties(!showAllFaculties)}
+                      >
+                        {showAllFaculties ? 'Скрыть' : `Ещё ${sortedFacs.length - 5}`}
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <div className="stat-line"><span>Нет данных</span></div>
+                )}
               </div>
             </div>
 
@@ -276,7 +292,6 @@ const Dashboard = ({ dormId, onBack, onLogout, onDownloadClick, userName }) => {
                 <div className="stat-line"><span>Всего комнат (фонд):</span> <span className="stat-val">{agg.totalRooms}</span></div>
                 <div className="stat-line"><span>Общая заполненность (по комнатам):</span> <span className="stat-val">{agg.totalRooms > 0 ? Math.round(((agg.occupied + agg.partially) / agg.totalRooms) * 100) : 0}%</span></div>
               </div>
-              <span className="clickable-text">Список лиц с ОВЗ ▶</span>
             </div>
           </div>
         </main>

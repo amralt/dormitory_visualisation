@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { fetchDormitories, fetchDormitoryStats, searchStudents } from '../pages/api';
 
-
 const Header = ({
   userName,
   onLogout,
@@ -9,6 +8,8 @@ const Header = ({
   onDownloadClick,
   onPersonClick,
   onLogoClick,
+  // можно добавить onFilterChange, если родитель хочет получать выбранные факультеты
+  // onFilterChange,
 }) => {
   const [peopleSearch, setPeopleSearch] = useState('');
   const [filteredPeople, setFilteredPeople] = useState([]);
@@ -28,7 +29,7 @@ const Header = ({
           try {
             const stats = await fetchDormitoryStats(name);
             return { name, stats };
-          } catch (err) {
+          } catch {
             return { name, stats: null };
           }
         });
@@ -47,7 +48,7 @@ const Header = ({
     loadData();
   }, []);
 
-  // Глобальный поиск студентов
+  // Поиск студентов
   useEffect(() => {
     const query = peopleSearch.trim();
     if (!query) {
@@ -59,17 +60,15 @@ const Header = ({
       try {
         const results = await searchStudents(query);
         setFilteredPeople(results);
-        setShowPeopleDropdown(results.length > 0);
       } catch (err) {
         console.error('Ошибка поиска:', err);
         setFilteredPeople([]);
-        setShowPeopleDropdown(false);
       }
     }, 300);
     return () => clearTimeout(timer);
   }, [peopleSearch]);
 
-  // Все факультеты из видимых общежитий
+  // Все факультеты (кафедры) из видимых общежитий
   const allFaculties = Array.from(
     new Set(
       Object.values(dormsData).flatMap(data =>
@@ -78,7 +77,6 @@ const Header = ({
     )
   ).sort();
 
-  // Обработчики
   const toggleFaculty = fac => {
     setSelectedFaculties(prev =>
       prev.includes(fac) ? prev.filter(f => f !== fac) : [...prev, fac]
@@ -94,6 +92,17 @@ const Header = ({
       onPersonClick(student.dormitory, student.room);
     }
   };
+
+  // ФИЛЬТРАЦИЯ по department (кафедра), а не organisation
+  const displayedPeople =
+    selectedFaculties.length > 0
+      ? filteredPeople.filter(student =>
+          selectedFaculties.includes(student.department)
+        )
+      : filteredPeople;
+
+  const shouldShowDropdown =
+    peopleSearch.trim().length > 0 && displayedPeople.length > 0;
 
   return (
     <header className="top-navbar">
@@ -119,9 +128,9 @@ const Header = ({
               value={peopleSearch}
               onChange={e => setPeopleSearch(e.target.value)}
             />
-            {showPeopleDropdown && (
+            {shouldShowDropdown && (
               <div className="search-results-dropdown" style={{ display: 'block' }}>
-                {filteredPeople.map((student, idx) => (
+                {displayedPeople.map((student, idx) => (
                   <div
                     key={idx}
                     className="search-result-item"
@@ -138,6 +147,14 @@ const Header = ({
                 ))}
               </div>
             )}
+            {/* Показываем сообщение, если ввели текст, но после фильтра ничего нет */}
+            {peopleSearch.trim().length > 0 &&
+              filteredPeople.length > 0 &&
+              !shouldShowDropdown && (
+                <div className="search-results-dropdown" style={{ display: 'block', fontSize: '14px', padding: '12px' }}>
+                  Нет студентов, соответствующих выбранным фильтрам.
+                </div>
+              )}
           </div>
 
           <div className="header-filter-wrapper" style={{ position: 'relative' }}>
