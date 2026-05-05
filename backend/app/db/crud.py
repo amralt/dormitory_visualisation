@@ -133,6 +133,8 @@ def get_by_room_num(dormitory: str, room: str, session: Session, user: dict = No
         ),
         ResidentsBase.dormitory == dormitory,
     )
+    if user and user.get("role") != "admin":
+        query = query.where(ResidentsBase.department.in_(user.get("available_faculties", [])))
     db_obj = session.scalars(stat).all()
     return [apply_mask(_to_resident_response(row), user) for row in db_obj]
 
@@ -155,6 +157,9 @@ def get_by_namepart(
                 ResidentsBase.kontragent.like(f"% {s}%"),
             )
         )
+    if user and user.get("role") != "admin":
+        stat = stat.where(ResidentsBase.department.in_(user.get("available_faculties", [])))
+    
     db_obj = session.scalars(stat).all()
     return [apply_mask(_to_resident_response(row), user) for row in db_obj]
 
@@ -167,15 +172,19 @@ def get_by_id_dogovor(
             ResidentsBase.registrator.contains(f"Направление на проживание {id}"),
             ResidentsBase.dormitory == dormitory,
         )
+        if user and user.get("role") != "admin":
+            stat = stat.where(ResidentsBase.department.in_(user.get("available_faculties", [])))
+    
         db_obj = session.scalars(stat).all()
     else:
-        db_obj = (
-            session.query(ResidentsBase)
-            .filter(
+        stat = select(ResidentsBase).filter(
                 ResidentsBase.registrator.contains(f"Направление на проживание {id}")
             )
-            .all()
-        )
+        if user and user.get("role") != "admin":
+            stat = stat.where(ResidentsBase.department.in_(user.get("available_faculties", [])))
+    
+        db_obj = session.scalars(stat).all()
+        
     return [apply_mask(_to_resident_response(row), user) for row in db_obj]
 
 
@@ -189,6 +198,9 @@ def get_by_dogovor_and_room(dormitory: str, qwery: str, session: Session, user: 
             ResidentsBase.registrator.contains(f"Направление на проживание {qwery}"),
         )
     )
+    if user and user.get("role") != "admin":
+            stat = stat.where(ResidentsBase.department.in_(user.get("available_faculties", [])))
+    
     db_obj = session.scalars(stat).all()
     return [apply_mask(_to_resident_response(row), user) for row in db_obj]
 
