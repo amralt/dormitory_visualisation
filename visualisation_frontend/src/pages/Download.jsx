@@ -73,17 +73,7 @@ const Download = ({ onBack, onLogout }) => {
 
   return (
     <div className="download-page">
-      <header className="top-navbar">
-        <div className="nav-left" onClick={onBack} style={{ cursor: 'pointer' }}>
-          <div className="n-star-logo"><span>N</span><span>*</span></div>
-          <span>СтудГородок</span>
-        </div>
-        <div className="nav-right">
-          <button className="logout-btn-icon" title="Выйти" onClick={onLogout}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-          </button>
-        </div>
-      </header>
+      
 
       <main style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
         <h1 style={{ textAlign: 'center', marginBottom: '10px' }}>Выгрузка базы данных</h1>
