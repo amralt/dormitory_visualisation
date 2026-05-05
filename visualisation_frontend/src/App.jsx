@@ -9,10 +9,11 @@ import Header from './components/Header';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('login');
+  const [lastPage, setLastPage] = useState(null);
   const [selectedDorm, setSelectedDorm] = useState(null);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [userName, setUserName] = useState('');   // <-- новое
+  const [userName, setUserName] = useState('');   
 
   useEffect(() => {
     const userId = localStorage.getItem('userId');
@@ -23,6 +24,11 @@ function App() {
     }
     setLoading(false);
   }, []);
+
+  useEffect(() => {
+    if (currentPage !== 'dashboard') 
+      setLastPage(currentPage);
+  }, [currentPage])
 
   const handleLoginSuccess = () => {
     // после успешного логина имя уже в localStorage, обновляем состояние
@@ -137,7 +143,7 @@ function App() {
         <Dashboard
         dormId={selectedDorm}
         onBack={() => {
-          selectedDorm ? setCurrentPage('dormStats') : setCurrentPage('cards');
+          setCurrentPage(lastPage);
         }}
         onDownloadClick={handleGoToDownload}
         onLogout={handleLogout}
