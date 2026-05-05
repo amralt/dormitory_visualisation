@@ -90,8 +90,38 @@ body { margin: 0; font-family: 'Roboto', sans-serif; background-color: var(--bg-
     margin: 0 auto;
     width: 100%;
     box-sizing: border-box;
+    /* Новые свойства – ограничение высоты и прокрутка */
+    height: calc(100vh - 65px);   /* 65px – высота верхней панели */
+    overflow-y: auto;             /* Вертикальная прокрутка при необходимости */
 }
 
+/* Адаптация карточек на самых маленьких экранах */
+@media (max-width: 480px) {
+    .main-content-cards {
+        padding: 20px;            /* Меньше отступы по бокам */
+    }
+
+    .dorm-card {
+        padding: 15px;            /* Компактнее */
+    }
+
+    .card-header-dorm {
+        font-size: 20px;          /* Уменьшаем шрифт заголовка */
+    }
+
+    .card-stats {
+        font-size: 16px;          /* Уменьшаем шрифт статистики */
+    }
+
+    .fac-item {
+        font-size: 14px;
+    }
+
+    .go-btn {
+        font-size: 13px;
+        padding: 5px 12px;
+    }
+}
 .page-title {
     margin-top: 0;
     color: var(--header-bg);

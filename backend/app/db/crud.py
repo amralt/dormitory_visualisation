@@ -72,7 +72,7 @@ def filter(session: Session, filters: ResidentFilter, user: dict) -> list[Reside
 
 
 def get_dormitory_stats(session: Session, dormitory_name: str) -> dict:
-    total_rooms = 128  # заглушка для общежития 2
+    total_rooms = 198  # заглушка для общежития 2
     residents_count_query = (
         select(
             ResidentsBase.room,
