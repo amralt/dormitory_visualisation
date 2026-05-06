@@ -16,7 +16,7 @@ const customBgPlugin = {
   }
 };
 
-const pieColors = ['#e53935', '#43a047', '#ffb300', '#8e24aa'];
+const pieColors = ['#e53935', '#ffb300', '#43a047', '#8e24aa'];
 const barColors = ['#1e88e5', '#8e24aa', '#43a047', '#fb8c00', '#e53935', '#00acc1', '#3949ab', '#f4511e', '#7cb342', '#d81b60'];
 
 const Dashboard = ({ dormId, onBack, onLogout, onDownloadClick, userName }) => {

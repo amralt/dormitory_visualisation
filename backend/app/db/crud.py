@@ -2,7 +2,7 @@ from app.db.models import ResidentsBase, Rooms
 from sqlalchemy import select, or_, and_, cast, String, func
 from sqlalchemy.orm import Session
 from app.api.schemas import ResidentFilter, FloorResponse, ResidentResponse
-
+from app.core.config import DORMITORIES
 
 def apply_mask(item: ResidentResponse, user: dict):
     """
@@ -70,9 +70,27 @@ def filter(session: Session, filters: ResidentFilter, user: dict) -> list[Reside
     # Применяем маску к каждому элементу
     return [apply_mask(_to_resident_response(row), user) for row in db_obj]
 
+def is_dormitory_visible(dormitory_name: str) -> bool:
+    for dorm in DORMITORIES:
+        if dorm["name"] == dormitory_name:
+            return dorm.get("visible", False)
+    return False
 
 def get_dormitory_stats(session: Session, dormitory_name: str) -> dict:
+    if not is_dormitory_visible(dormitory_name):
+        return {
+            "dormitory_name": dormitory_name,
+            "total_rooms": 0,
+            "occupied_rooms": 0,
+            "partially_occupied": 0,
+            "free_rooms": 0,
+            "departments_stats": {},
+            "total_students": 0,
+            "max_students": 0,
+        }
+        
     total_rooms = 198  # заглушка для общежития 2
+    
     residents_count_query = (
         select(
             ResidentsBase.room,

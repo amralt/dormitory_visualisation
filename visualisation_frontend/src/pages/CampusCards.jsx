@@ -9,6 +9,10 @@ const CampusCards = ({ onCardClick, onStatClick, onDownloadClick, onLogout, onPe
   const [filteredPeople, setFilteredPeople] = useState([]);
   const [showPeopleDropdown, setShowPeopleDropdown] = useState(false);
   const [selectedFaculties, setSelectedFaculties] = useState([]);
+  const [expandedFaculties, setExpandedFaculties] = useState({});
+  const toggleFaculties = (dormName) => {
+  setExpandedFaculties(prev => ({ ...prev, [dormName]: !prev[dormName] }));
+};
   const [showFilter, setShowFilter] = useState(false);
   const [dormsData, setDormsData] = useState({});       // { dormName: stats }
   const [visibleDorms, setVisibleDorms] = useState([]);  // массив имён видимых общежитий
@@ -56,26 +60,40 @@ const CampusCards = ({ onCardClick, onStatClick, onDownloadClick, onLogout, onPe
 
   // Глобальный поиск студентов (без изменений)
   useEffect(() => {
-    const loadSearch = async () => {
-      const query = peopleSearch.trim();
-      if (!query) {
-        setFilteredPeople([]);
-        setShowPeopleDropdown(false);
-        return;
-      }
-      try {
-        const results = await searchStudents(query);
-        setFilteredPeople(results);
-        setShowPeopleDropdown(results.length > 0);
-      } catch (err) {
-        console.error('Ошибка поиска:', err);
-        setFilteredPeople([]);
-        setShowPeopleDropdown(false);
-      }
-    };
-    const timer = setTimeout(loadSearch, 300);
-    return () => clearTimeout(timer);
-  }, [peopleSearch]);
+  const loadAll = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const allDorms = await fetchDormitories();
+      // Берём ВСЕ общежития, независимо от visible
+      const allDormNames = allDorms.map(d => d.name);
+      setVisibleDorms(allDormNames);
+
+      const statsPromises = allDormNames.map(async (name) => {
+        try {
+          const stats = await fetchDormitoryStats(name);
+          return { name, stats };
+        } catch (err) {
+          console.error(`Ошибка загрузки статистики для общежития ${name}:`, err);
+          return { name, stats: null };
+        }
+      });
+      const results = await Promise.all(statsPromises);
+      const dataMap = {};
+      results.forEach(({ name, stats }) => {
+        // Сохраняем даже null — потом подставим нули
+        dataMap[name] = stats;
+      });
+      setDormsData(dataMap);
+    } catch (err) {
+      console.error(err);
+      setError('Не удалось загрузить список общежитий');
+    } finally {
+      setLoading(false);
+    }
+  };
+  loadAll();
+}, []);
 
   // Все факультеты (departments) из загруженной статистики видимых общежитий
   const allFaculties = Array.from(
@@ -86,11 +104,31 @@ const CampusCards = ({ onCardClick, onStatClick, onDownloadClick, onLogout, onPe
 
   // Фильтрация общежитий по выбранным факультетам (должен быть хотя бы один студент с таким факультетом)
   const filteredDorms = visibleDorms.filter(name => {
-    const data = dormsData[name];
-    if (!data) return false;
-    if (selectedFaculties.length === 0) return true;
-    return selectedFaculties.some(fac => data.departments_stats?.[fac] > 0);
-  });
+  let originalData = dormsData[name];
+const isVisible = originalData !== null; // если данных нет – visible false
+let data;
+if (!originalData) {
+  data = {
+    total_rooms: 0,
+    occupied_rooms: 0,
+    partially_occupied: 0,
+    free_rooms: 0,
+    total_students: 0,
+    departments_stats: {}
+  };
+} else {
+  data = { ...originalData };
+  if (!isVisible) {
+    data.total_rooms = 0;
+    data.occupied_rooms = 0;
+    data.partially_occupied = 0;
+    data.free_rooms = 0;
+  }
+}
+
+  if (selectedFaculties.length === 0) return true;
+  return selectedFaculties.some(fac => data.departments_stats?.[fac] > 0);
+});
 
   const handlePersonClick = (student) => {
     setPeopleSearch('');
@@ -115,7 +153,7 @@ const CampusCards = ({ onCardClick, onStatClick, onDownloadClick, onLogout, onPe
 <>
 
       <main className="main-content-cards">
-        <h1 className="page-title">Сводка по общежитиям</h1>
+        <h1 className="page-title" style={{ color: 'black', marginBottom: '1.5rem', marginTop: '0rem', }}>Общежития НГУ</h1>
 
         {filteredDorms.length === 0 && (
           <p style={{ textAlign: 'center', color: '#e57373', fontSize: '18px' }}>
@@ -123,66 +161,149 @@ const CampusCards = ({ onCardClick, onStatClick, onDownloadClick, onLogout, onPe
           </p>
         )}
 
-        <div className="cards-grid">
+        <div 
+  className="cards-grid" 
+  style={{
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+    gap: '20px',
+    alignItems: 'start'
+  }}
+>
           {filteredDorms.map(name => {
-            const data = dormsData[name];
-            if (!data) return null;
-            const total = data.total_rooms;
-            const occupied = data.occupied_rooms;
-            const partially = data.partially_occupied;
-            const free = data.free_rooms;
-            const totalStudents = data.total_students;
-            return (
-              <div key={name} className="dorm-card">
-                <div className="card-header-dorm">
-                  <span>Общежитие {name}</span>
-                </div>
-                <div className="card-body-dorm">
-                  <div className="card-stats">
-                    <div className="faculties-block">
-                      <div className="stat-label" style={{ fontWeight: 'bold', color: 'var(--text-main)' }}>
-                        Факультеты:
-                      </div>
-                      {Object.entries(data.departments_stats || {}).map(([facName, count]) => (
-                        <div key={facName} className="fac-item">
-                          <span>{facName}:</span> <strong>{count} чел.</strong>
-                        </div>
-                      ))}
+  let originalData = dormsData[name];
+  let data;
+  if (!originalData) {
+    data = {
+      total_rooms: 0,
+      occupied_rooms: 0,
+      partially_occupied: 0,
+      free_rooms: 0,
+      total_students: 0,
+      departments_stats: {}
+    };
+  } else {
+    data = { ...originalData };
+    // если данных нет (originalData === null) мы уже обработали, здесь данные есть
+    // но если видимость ложная (раньше была логика isVisible, сейчас не нужна)
+    // Для пустых БД можно позже обнулить, но сейчас просто используем as is
+  }
+
+  // Определяем, есть ли комнаты (и вообще данные не пустые)
+  const hasRooms = data.total_rooms > 0;
+
+  return (
+    <div 
+      key={name} 
+      className="dorm-card" 
+      style={{
+        opacity: hasRooms ? 1 : 0.6,
+        backgroundColor: hasRooms ? 'var(--card-bg)' : '#f0f0f0',
+        transition: 'none',
+        cursor: hasRooms ? 'pointer' : 'default',
+        transform: 'none',
+        pointerEvents: hasRooms ? 'auto' : 'none'
+      }}
+    >
+      <div className="card-header-dorm">
+        <span>{name}</span>
+      </div>
+      <div className="card-body-dorm">
+        <div className="card-stats">
+          <div className="faculties-block" style={{ minHeight: '170px' }}>
+            <div className="stat-label" style={{ fontWeight: 'bold', color: 'var(--text-main)' }}>
+              Факультеты:
+            </div>
+            {(() => {
+              const faculties = Object.entries(data.departments_stats || {});
+              const sorted = [...faculties].sort((a, b) => b[1] - a[1]);
+              const isExpanded = expandedFaculties[name];
+              const visibleFaculties = isExpanded ? sorted : sorted.slice(0, 3);
+              const hasMore = sorted.length > 3;
+
+              if (faculties.length === 0) {
+                return <div style={{ color: '#999', fontSize: '13px', padding: '4px 0' }}>Нет данных</div>;
+              }
+
+              return (
+                <>
+                  {visibleFaculties.map(([facName, count]) => (
+                    <div key={facName} className="fac-item">
+                      <span>{facName}:</span> <strong>{count} чел.</strong>
                     </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Всего комнат:</span>
-                      <span className="stat-val">{total}</span>
+                  ))}
+                  {hasMore && (
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+                      <button
+                        onClick={() => toggleFaculties(name)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: '#666',
+                          fontSize: '13px',
+                          padding: '4px 8px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        {isExpanded ? '▲ Скрыть' : '▼ Показать все'}
+                      </button>
                     </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Занято (полностью):</span>
-                      <span className="stat-val" style={{ color: '#e53935' }}>{occupied}</span>
-                    </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Частично занято:</span>
-                      <span className="stat-val" style={{ color: '#ffb300' }}>{partially}</span>
-                    </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Свободно:</span>
-                      <span className="stat-val" style={{ color: '#43a047' }}>{free}</span>
-                    </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Всего студентов:</span>
-                      <span className="stat-val">{totalStudents}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="card-footer-dorm">
-                  <button className="go-btn" onClick={() => onCardClick(name)}>
-                    Перейти
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="5" y1="12" x2="19" y2="12"></line>
-                      <polyline points="12 5 19 12 12 19"></polyline>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+                  )}
+                </>
+              );
+            })()}
+          </div>
+
+          <div className="stat-item" style={{ marginTop: '3px' }}>
+            <span className="stat-label">Всего студентов:</span>
+            <span className="stat-val">{data.total_students}</span>
+          </div>
+
+          <div style={{ marginTop: '4px' }}></div>
+
+          <div className="stat-item">
+            <span className="stat-label">Всего комнат:</span>
+            <span className="stat-val">{data.total_rooms}</span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-label">Занято (полностью):</span>
+            <span className="stat-val" style={{ color: '#e53935' }}>{data.occupied_rooms}</span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-label">Частично занято:</span>
+            <span className="stat-val" style={{ color: '#ffb300' }}>{data.partially_occupied}</span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-label">Свободно:</span>
+            <span className="stat-val" style={{ color: '#43a047' }}>{data.free_rooms}</span>
+          </div>
+        </div>
+      </div>
+      <div className="card-footer-dorm">
+        <button 
+          className="go-btn" 
+          onClick={() => hasRooms && onCardClick(name)}
+          style={{
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: '8px 0',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            cursor: hasRooms ? 'pointer' : 'default',
+            backgroundColor: hasRooms ? undefined : '#cccccc'
+          }}
+        >
+          Перейти
+        </button>
+      </div>
+    </div>
+  );
+})}
         </div>
       </main>
     </>
