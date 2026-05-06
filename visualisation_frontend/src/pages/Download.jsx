@@ -12,7 +12,7 @@ const Download = ({ onBack, onLogout }) => {
     const loadData = async () => {
       setLoading(true);
       try {
-        const residents = await filterResidents({}); // без фильтров – все
+        const residents = await filterResidents({});
         setStudents(residents);
       } catch (err) {
         setError('Не удалось загрузить список студентов');
@@ -29,12 +29,12 @@ const Download = ({ onBack, onLogout }) => {
     const worksheet = workbook.addWorksheet('Список студентов');
 
     worksheet.columns = [
-      { header: 'ФИО', key: 'fiz_lico', width: 30 },
-      { header: 'Общежитие', key: 'dormitory', width: 15 },
-      { header: 'Комната', key: 'room', width: 15 },
-      { header: 'Факультет', key: 'department', width: 20 },
+      { header: 'ФИО', key: 'fiz_lico', width: 35 },
+      { header: 'Общежитие', key: 'dormitory', width: 18 },
+      { header: 'Комната', key: 'room', width: 12 },
+      { header: 'Факультет', key: 'department', width: 25 },
       { header: 'Организация', key: 'organisation', width: 20 },
-      { header: 'Категория', key: 'resident_category', width: 20 },
+      { header: 'Категория', key: 'resident_category', width: 25 },
     ];
 
     students.forEach(student => {
@@ -65,53 +65,58 @@ const Download = ({ onBack, onLogout }) => {
     window.URL.revokeObjectURL(url);
   };
 
-  const thStyle = { padding: '14px 12px', borderBottom: '2px solid #eee', color: '#666', fontWeight: '600', textAlign: 'left' };
-  const tdStyle = { padding: '12px', borderBottom: '1px solid #f0f0f0', color: '#333' };
-
   if (loading) return <div className="loading-spinner">Загрузка данных...</div>;
   if (error) return <div className="error-message">{error}</div>;
 
   return (
     <div className="download-page">
-      
+      {/* Шапка с кнопкой выхода */}
+      <div className="download-header">
+        <button className="logout-btn" onClick={onLogout}>
+          Выйти
+        </button>
+      </div>
 
-      <main style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-        <h1 style={{ textAlign: 'center', marginBottom: '10px' }}>Выгрузка базы данных</h1>
-        <p style={{ textAlign: 'center', color: '#666', marginBottom: '30px' }}>Просмотр и экспорт актуального списка проживающих</p>
-        
-        <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+      <main className="download-main">
+        <h1 className="download-title">Выгрузка базы данных</h1>
+        <p className="download-subtitle">Просмотр и экспорт актуального списка проживающих</p>
+
+        <div className="export-btn-container">
           <button className="apply-btn" onClick={handleExportExcel}>
             📥 Сгенерировать и скачать Excel
           </button>
         </div>
 
-        <div className="preview-table-container" style={{ maxHeight: '500px', overflowY: 'auto', overflowX: 'auto', background: 'white', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', border: '1px solid #e0e0e0' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-            <thead style={{ background: '#f8f9fa', position: 'sticky', top: 0, zIndex: 1 }}>
+        <div className="preview-table-wrapper">
+          <table className="download-table">
+            <thead>
               <tr>
-                <th style={thStyle}>ФИО</th>
-                <th style={thStyle}>Общ.</th>
-                <th style={thStyle}>Комната</th>
-                <th style={thStyle}>Факультет</th>
-                <th style={thStyle}>Категория</th>
+                <th>ФИО</th>
+                <th>Общежитие</th>
+                <th>Комната</th>
+                <th>Факультет</th>
+                <th>Категория</th>
               </tr>
             </thead>
             <tbody>
               {students.map((s, idx) => (
                 <tr key={idx} className="table-row-hover">
-                  <td style={tdStyle}>{s.fiz_lico || ''}</td>
-                  <td style={tdStyle}>{s.dormitory || ''}</td>
-                  <td style={tdStyle}>{s.room || ''}</td>
-                  <td style={tdStyle}>{s.department || ''}</td>
-                  <td style={tdStyle}>{s.resident_category || ''}</td>
+                  <td data-label="ФИО">{s.fiz_lico || '—'}</td>
+                  <td data-label="Общежитие">{s.dormitory || '—'}</td>
+                  <td data-label="Комната">{s.room || '—'}</td>
+                  <td data-label="Факультет">{s.department || '—'}</td>
+                  <td data-label="Категория">{s.resident_category || '—'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <button className="text-btn" onClick={onBack} style={{ display: 'block', margin: '30px auto' }}>
-          ← Вернуться в меню
-        </button>
+
+        <div className="download-buttons">
+          <button className="text-btn" onClick={onBack}>
+            ← Вернуться в меню
+          </button>
+        </div>
       </main>
     </div>
   );
