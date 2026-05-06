@@ -4,3 +4,10 @@
 
 node_modules/
 /test-results/
+
+
+бэдэ.xlsx
+dogovory.csv
+dogovory.db
+data_add.py
+rooms_dataadd.py
