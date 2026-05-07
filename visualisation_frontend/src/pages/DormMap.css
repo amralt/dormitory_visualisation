@@ -681,8 +681,8 @@ svg {
 /* Режим отображения и легенда */
 .view-mode-legend {
   position: absolute;
-  top: 20px;
-  right: 170px;          /* чтобы не наезжать на floor-switcher (ширина ~110px + отступы) */
+  bottom: 100px;
+  right: 25px;          /* чтобы не наезжать на floor-switcher (ширина ~110px + отступы) */
   background: rgba(255,255,255,0.95);
   padding: 12px 16px;
   border-radius: 8px;

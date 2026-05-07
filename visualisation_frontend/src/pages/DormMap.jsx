@@ -132,25 +132,29 @@ const DormMap = ({ dormId, onBack, onGoToDashboard, onLogout, initialRoomId, onD
     }
   }, []);
 
+  const normalizeRoomId = (rawRoom) => {
+    if (!rawRoom) return "";
+    // Берём первую часть до пробела, а затем отсекаем суффикс /...
+    return String(rawRoom).trim().split(' ')[0].split('/')[0];
+  };
+
   // Цвета для комнат (существующая логика)
   const updateMapColors = useCallback(() => {
-    document.querySelectorAll('.map-room').forEach(roomEl => {
-      const mapRoomId = roomEl.getAttribute('data-room');
-      const matchingRooms = roomsDataRef.current.filter(r =>
-        r.id === mapRoomId || r.id.startsWith(mapRoomId + '/')
-      );
-      roomEl.classList.remove('status-free', 'status-partial', 'status-full', 'status-selected');
-      if (selectedRoomIdRef.current === mapRoomId || (selectedRoomIdRef.current && selectedRoomIdRef.current.startsWith(mapRoomId + '/'))) {
-        roomEl.classList.add('status-selected');
-        return;
-      }
-      const occupied = matchingRooms.reduce((sum, r) => sum + r.students.length, 0);
-      const capacity = matchingRooms.length > 0 ? matchingRooms.reduce((sum, r) => sum + r.capacity, 0) : 2;
-      if (occupied === 0) roomEl.classList.add('status-free');
-      else if (occupied < capacity) roomEl.classList.add('status-partial');
-      else roomEl.classList.add('status-full');
-    });
-  }, []);
+  document.querySelectorAll('.map-room').forEach(roomEl => {
+    const mapRoomId = roomEl.getAttribute('data-room');
+    const room = roomsDataRef.current.find(r => r.id === mapRoomId);
+    roomEl.classList.remove('status-free', 'status-partial', 'status-full', 'status-selected');
+    if (selectedRoomIdRef.current === mapRoomId) {
+      roomEl.classList.add('status-selected');
+      return;
+    }
+    if (!room) return;
+    const occupied = room.students.length;
+    if (occupied === 0) roomEl.classList.add('status-free');
+    else if (occupied < room.capacity) roomEl.classList.add('status-partial');
+    else roomEl.classList.add('status-full');
+  });
+}, []);
 
   const prepareSVG = useCallback(() => {
   if (!svgContent || !svgContent.includes('<svg')) return;
@@ -473,7 +477,7 @@ const DormMap = ({ dormId, onBack, onGoToDashboard, onLogout, initialRoomId, onD
     }
 
     // Режим комнат (существующая логика)
-    const roomId = normalizeRoomId(rawId);
+    const roomId = viewMode === 'rooms' ? normalizeRoomId(rawId) : rawId;
     const targetFloor = parseInt(roomId.charAt(0));
     const centerRoom = () => {
       const attempt = (retries = 0) => {
@@ -541,6 +545,9 @@ const DormMap = ({ dormId, onBack, onGoToDashboard, onLogout, initialRoomId, onD
   }, []);
 
   const localSearch = () => {
+    const onClickAction = viewMode === 'beds' 
+        ? () => goToRoom(s.bedId) 
+        : () => goToRoom(r.id);  
     const q = localSearchQuery.toLowerCase().trim();
     const f = localFacultyFilter;
     if (!q && f === 'all') return <p className="empty-msg">Введите запрос для поиска</p>;
