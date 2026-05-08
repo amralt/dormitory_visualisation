@@ -294,6 +294,7 @@ html, body {
   align-items: center;
   justify-content: center;      /* центрируем содержимое по горизонтали */
   width: 100%;
+  max-width: 1200px;
   margin-bottom: 24px;          /* при желании можно оставить тот же отступ снизу */
 }
 
