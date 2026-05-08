@@ -3,6 +3,7 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearSca
 import { Pie, Bar } from 'react-chartjs-2';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { fetchDormitoryStats, fetchDormitories } from './api';
+import facultyColors from '../config/facultyColors';
 import './Dashboard.css'
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, ChartDataLabels);
@@ -17,7 +18,7 @@ const customBgPlugin = {
 };
 
 const pieColors = ['#e53935', '#ffb300', '#43a047', '#8e24aa'];
-const barColors = ['#1e88e5', '#8e24aa', '#43a047', '#fb8c00', '#e53935', '#00acc1', '#3949ab', '#f4511e', '#7cb342', '#d81b60'];
+const barColors = [ '#8e24aa', '#43a047', '#fb8c00', '#e53935', '#00acc1', '#3949ab', '#f4511e', '#7cb342', '#d81b60'];
 
 const Dashboard = ({ dormId, onBack, onLogout, onDownloadClick, userName }) => {
   const dropdownRef = useRef(null);
@@ -155,8 +156,10 @@ const Dashboard = ({ dormId, onBack, onLogout, onDownloadClick, userName }) => {
     labels: sortedFacs.map(f => f.label),
     datasets: [{ 
       data: sortedFacs.map(f => f.val), 
-      backgroundColor: sortedFacs.map((_, i) => barColors[i % barColors.length]), 
-      borderRadius: 6, borderWidth: 0 
+      // Исправленная логика: берем цвет по названию факультета или default
+      backgroundColor: sortedFacs.map(f => facultyColors[f.label] || facultyColors.default), 
+      borderRadius: 6, 
+      borderWidth: 0 
     }]
   };
 

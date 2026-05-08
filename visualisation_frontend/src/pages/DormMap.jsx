@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { filterResidents } from './api';
 import './DormMap.css';
-import facultyColors from '../config/facultyColors'; // <-- импорт цветов
+import facultyColors from '../config/facultyColors'; 
 
 const normalizeRoomId = (rawRoom) => {
   if (!rawRoom) return "";
@@ -31,9 +31,11 @@ const DormMap = ({ dormId, onBack, onGoToDashboard, onLogout, initialRoomId, onD
   const [loadingData, setLoadingData] = useState(true);
   const [dataError, setDataError] = useState(null);
 
-  // Новые состояния для режима отображения
-  const [viewMode, setViewMode] = useState('rooms'); // 'rooms' или 'beds'
-  const [bedAssignments, setBedAssignments] = useState({}); // { "120_1": student, ... }
+  const [viewMode, setViewMode] = useState('rooms'); 
+  const [bedAssignments, setBedAssignments] = useState({}); 
+  
+  const [legendCollapsed, setLegendCollapsed] = useState(false);
+  const [floorSwitcherCollapsed, setFloorSwitcherCollapsed] = useState(false);
 
   const zoomLayerRef = useRef(null);
   const mapAreaRef = useRef(null);
@@ -44,12 +46,15 @@ const DormMap = ({ dormId, onBack, onGoToDashboard, onLogout, initialRoomId, onD
   const roomsDataRef = useRef([]);
   const selectedRoomIdRef = useRef(null);
   const viewModeRef = useRef(viewMode);
+  
+  // ИСПРАВЛЕНИЕ: Реф для масштаба (чтобы goToRoom всегда знал реальный зум)
+  const scaleRef = useRef(scale);
 
   useEffect(() => { roomsDataRef.current = roomsData; }, [roomsData]);
   useEffect(() => { selectedRoomIdRef.current = selectedRoomId; }, [selectedRoomId]);
   useEffect(() => { viewModeRef.current = viewMode; }, [viewMode]);
+  useEffect(() => { scaleRef.current = scale; }, [scale]);
 
-  // Загрузка данных о жильцах
   useEffect(() => {
     if (!dormId) {
       setRoomsData([]);
@@ -75,7 +80,6 @@ const DormMap = ({ dormId, onBack, onGoToDashboard, onLogout, initialRoomId, onD
           });
         });
         const roomsArray = Object.values(roomMap);
-        // Присваиваем номер кровати каждому студенту
         roomsArray.forEach(room => {
           room.students.forEach((s, i) => {
             s.bed = i + 1;
@@ -93,7 +97,7 @@ const DormMap = ({ dormId, onBack, onGoToDashboard, onLogout, initialRoomId, onD
               room: room.id,
               fac: s.fac,
               contract: s.contract,
-              bedId: s.bedId // для быстрого поиска по кровати
+              bedId: s.bedId
             });
           });
         });
@@ -106,7 +110,6 @@ const DormMap = ({ dormId, onBack, onGoToDashboard, onLogout, initialRoomId, onD
       });
   }, [dormId]);
 
-  // Вычисляем назначения по кроватям
   useEffect(() => {
     const assignments = {};
     roomsData.forEach(room => {
@@ -117,7 +120,6 @@ const DormMap = ({ dormId, onBack, onGoToDashboard, onLogout, initialRoomId, onD
     setBedAssignments(assignments);
   }, [roomsData]);
 
-  // Загрузка SVG в зависимости от режима
   const loadFloor = useCallback(async (floor) => {
     const svgPath = viewModeRef.current === 'beds'
       ? `/bedmap_${floor}.svg`
@@ -132,143 +134,132 @@ const DormMap = ({ dormId, onBack, onGoToDashboard, onLogout, initialRoomId, onD
     }
   }, []);
 
-  const normalizeRoomId = (rawRoom) => {
-    if (!rawRoom) return "";
-    // Берём первую часть до пробела, а затем отсекаем суффикс /...
-    return String(rawRoom).trim().split(' ')[0].split('/')[0];
-  };
-
-  // Цвета для комнат (существующая логика)
   const updateMapColors = useCallback(() => {
-  document.querySelectorAll('.map-room').forEach(roomEl => {
-    const mapRoomId = roomEl.getAttribute('data-room');
-    const room = roomsDataRef.current.find(r => r.id === mapRoomId);
-    roomEl.classList.remove('status-free', 'status-partial', 'status-full', 'status-selected');
-    if (selectedRoomIdRef.current === mapRoomId) {
-      roomEl.classList.add('status-selected');
-      return;
-    }
-    if (!room) return;
-    const occupied = room.students.length;
-    if (occupied === 0) roomEl.classList.add('status-free');
-    else if (occupied < room.capacity) roomEl.classList.add('status-partial');
-    else roomEl.classList.add('status-full');
-  });
-}, []);
+    document.querySelectorAll('.map-room').forEach(roomEl => {
+      const mapRoomId = roomEl.getAttribute('data-room');
+      const matchingRooms = roomsDataRef.current.filter(r => 
+        r.id === mapRoomId || r.id.startsWith(mapRoomId + '/')
+      );
+      
+      // Сбрасываем все классы статусов
+      roomEl.classList.remove('status-free', 'status-partial', 'status-full', 'status-selected');
+      
+      // 1. Оставляем базовый цвет заливки в зависимости от заполненности
+      const occupied = matchingRooms.reduce((sum, r) => sum + r.students.length, 0);
+      const capacity = matchingRooms.length > 0 ? matchingRooms.reduce((sum, r) => sum + r.capacity, 0) : 2;
+      
+      if (occupied === 0) roomEl.classList.add('status-free');
+      else if (occupied < capacity) roomEl.classList.add('status-partial');
+      else roomEl.classList.add('status-full');
+
+      // 2. Добавляем класс выделения, если комната выбрана
+      if (selectedRoomIdRef.current === mapRoomId || (selectedRoomIdRef.current && selectedRoomIdRef.current.startsWith(mapRoomId + '/'))) {
+        roomEl.classList.add('status-selected');
+      }
+    });
+  }, []);
 
   const prepareSVG = useCallback(() => {
-  if (!svgContent || !svgContent.includes('<svg')) return;
-  setTimeout(() => {
-    const roomIdsFallback = ["01","02","03","04","05","06","07","08","09","10","11","12","13","14","15"];
-    let fallbackIndex = 0;
+    if (!svgContent || !svgContent.includes('<svg')) return;
+    setTimeout(() => {
+      const roomIdsFallback = ["01","02","03","04","05","06","07","08","09","10","11","12","13","14","15"];
+      let fallbackIndex = 0;
 
-    const shapes = Array.from(
-      document.querySelectorAll('.zoom-layer svg rect, .zoom-layer svg path, .zoom-layer svg polygon')
-    ).filter(shape => !shape.closest('.map-room'));
+      const shapes = Array.from(
+        document.querySelectorAll('.zoom-layer svg rect, .zoom-layer svg path, .zoom-layer svg polygon')
+      ).filter(shape => !shape.closest('.map-room'));
 
-    if (shapes.length === 0) return;
+      if (shapes.length === 0) return;
 
-    // Вычисляем максимальную площадь для исключения внешних контуров
-    let maxArea = 0;
-    shapes.forEach(s => {
-      try {
-        const box = s.getBBox();
-        const area = box.width * box.height;
-        if (area > maxArea) maxArea = area;
-      } catch(e) {}
-    });
+      let maxArea = 0;
+      shapes.forEach(s => {
+        try {
+          const box = s.getBBox();
+          const area = box.width * box.height;
+          if (area > maxArea) maxArea = area;
+        } catch(e) {}
+      });
 
-    shapes.forEach((shape) => {
-      const computedStyle = window.getComputedStyle(shape);
-      const stroke = computedStyle.stroke;
-      let isBlackStroke = false;
-      if (stroke && stroke !== 'none') {
-        const rgb = stroke.match(/\d+/g);
-        if (rgb) {
-          const [r, g, b] = rgb.map(Number);
-          if (r < 50 && g < 50 && b < 50) isBlackStroke = true;
+      shapes.forEach((shape) => {
+        const computedStyle = window.getComputedStyle(shape);
+        const stroke = computedStyle.stroke;
+        let isBlackStroke = false;
+        if (stroke && stroke !== 'none') {
+          const rgb = stroke.match(/\d+/g);
+          if (rgb) {
+            const [r, g, b] = rgb.map(Number);
+            if (r < 50 && g < 50 && b < 50) isBlackStroke = true;
+          }
         }
-      }
-      if (!isBlackStroke) return;
+        if (!isBlackStroke) return;
 
-      try {
-        const box = shape.getBBox();
-        if (box.width * box.height >= maxArea * 0.8) return;
-      } catch(e) { return; }
+        try {
+          const box = shape.getBBox();
+          if (box.width * box.height >= maxArea * 0.8) return;
+        } catch(e) { return; }
 
-      // --- Извлечение настоящего ID комнаты ---
-      let roomId = null;
-
-      // 1. data-room самого элемента (если есть)
-      const dataRoom = shape.getAttribute('data-room');
-      if (dataRoom && /^\d+/.test(dataRoom)) {
-        roomId = dataRoom.trim();
-      }
-      // 2. id элемента вида "102/1", "205" и т.п.
-      else {
-        const shapeId = shape.getAttribute('id');
-        if (shapeId && /^\d+/.test(shapeId)) {
-          const match = shapeId.match(/^(\d+)(?:\/|$)/);
-          if (match) roomId = match[1]; // "102/1" → "102"
+        let roomId = null;
+        const dataRoom = shape.getAttribute('data-room');
+        if (dataRoom && /^\d+/.test(dataRoom)) {
+          roomId = dataRoom.trim();
+        } else {
+          const shapeId = shape.getAttribute('id');
+          if (shapeId && /^\d+/.test(shapeId)) {
+            const match = shapeId.match(/^(\d+)(?:\/|$)/);
+            if (match) roomId = match[1];
+          }
         }
-      }
 
-      // 3. Если нет ни того ни другого — ищем в родительских <g>
-      if (!roomId) {
-        let parent = shape.parentNode;
-        while (parent && parent !== zoomLayerRef.current) {
-          if (parent.tagName === 'g' || parent.tagName === 'G') {
-            const parentId = parent.getAttribute('data-room') || parent.getAttribute('id');
-            if (parentId && /^\d+/.test(parentId)) {
-              const match = parentId.match(/^(\d+)(?:\/|$)/);
-              if (match) {
-                roomId = match[1];
-                break;
+        if (!roomId) {
+          let parent = shape.parentNode;
+          while (parent && parent !== zoomLayerRef.current) {
+            if (parent.tagName === 'g' || parent.tagName === 'G') {
+              const parentId = parent.getAttribute('data-room') || parent.getAttribute('id');
+              if (parentId && /^\d+/.test(parentId)) {
+                const match = parentId.match(/^(\d+)(?:\/|$)/);
+                if (match) {
+                  roomId = match[1];
+                  break;
+                }
               }
             }
+            parent = parent.parentNode;
           }
-          parent = parent.parentNode;
         }
-      }
 
-      // 4. Если всё равно не нашли – fallback на старую индексацию
-      let finalId;
-      if (roomId) {
-        finalId = roomId;               // например, "102"
-      } else {
-        finalId = currentFloorRef.current + (roomIdsFallback[fallbackIndex] || (fallbackIndex + 16).toString());
-        fallbackIndex++;
-      }
+        let finalId;
+        if (roomId) {
+          finalId = roomId;
+        } else {
+          finalId = currentFloorRef.current + (roomIdsFallback[fallbackIndex] || (fallbackIndex + 16).toString());
+          fallbackIndex++;
+        }
 
-      // Создаём группу
-      const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      group.setAttribute('class', 'map-room');
-      group.setAttribute('data-room', finalId);
-      group.style.cursor = 'pointer';
+        const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        group.setAttribute('class', 'map-room');
+        group.setAttribute('data-room', finalId);
+        group.style.cursor = 'pointer';
 
-      const parentElement = shape.parentNode;
-      parentElement.insertBefore(group, shape);
-      group.appendChild(shape);
-      shape.removeAttribute('style');
-      shape.removeAttribute('fill');
+        const parentElement = shape.parentNode;
+        parentElement.insertBefore(group, shape);
+        group.appendChild(shape);
+        shape.removeAttribute('style');
+        shape.removeAttribute('fill');
 
-      const box = shape.getBBox();
-      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      text.setAttribute('class', 'room-label');
-      text.setAttribute('x', box.x + box.width / 2);
-      text.setAttribute('y', box.y + box.height / 2);
-      text.setAttribute('style', 'pointer-events: none; dominant-baseline: middle; text-anchor: middle;');
-      text.textContent = finalId;
-      group.appendChild(text);
-    });
+        const box = shape.getBBox();
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('class', 'room-label');
+        text.setAttribute('x', box.x + box.width / 2);
+        text.setAttribute('y', box.y + box.height / 2);
+        text.setAttribute('style', 'pointer-events: none; dominant-baseline: middle; text-anchor: middle;');
+        text.textContent = finalId;
+        group.appendChild(text);
+      });
 
-    updateMapColors();
-  }, 50);
-}, [svgContent, updateMapColors]);
+      updateMapColors();
+    }, 50);
+  }, [svgContent, updateMapColors]);
 
-
-
-  // Подготовка SVG для режима кроватей
   const prepareBedSVG = useCallback(() => {
     if (!svgContent || !svgContent.includes('<svg')) return;
     setTimeout(() => {
@@ -283,33 +274,37 @@ const DormMap = ({ dormId, onBack, onGoToDashboard, onLogout, initialRoomId, onD
     }, 50);
   }, [svgContent]);
 
-  // Раскраска кроватей по факультетам
   const updateBedColors = useCallback(() => {
     const beds = document.querySelectorAll('.zoom-layer .bed');
     beds.forEach(bed => {
       const bedId = bed.getAttribute('data-bed-id') || bed.id;
       const student = bedAssignments[bedId];
+      
+      // Сбрасываем все классы, включая класс выделения
+      bed.classList.remove('bed-occupied', 'bed-empty', 'bed-selected');
+      
       if (student) {
         const color = facultyColors[student.fac] || facultyColors.default;
         bed.style.fill = color;
         bed.style.stroke = '#37474f';
         bed.style.strokeWidth = '2px';
         bed.classList.add('bed-occupied');
-        bed.classList.remove('bed-empty');
       } else {
         bed.style.fill = '#f5f5f5';
         bed.style.stroke = '#b0bec5';
         bed.style.strokeWidth = '1px';
         bed.classList.add('bed-empty');
-        bed.classList.remove('bed-occupied');
+      }
+
+      // Добавляем класс, если кровать выбрана
+      if (bedId === selectedRoomIdRef.current) {
+        bed.classList.add('bed-selected');
       }
     });
   }, [bedAssignments, facultyColors]);
 
-  // Первоначальная загрузка этажа
   useEffect(() => { loadFloor(1); }, [loadFloor]);
 
-  // Вставка SVG в DOM и подготовка
   useEffect(() => {
     if (!loadingData && svgContent && zoomLayerRef.current) {
       zoomLayerRef.current.innerHTML = svgContent;
@@ -321,8 +316,7 @@ const DormMap = ({ dormId, onBack, onGoToDashboard, onLogout, initialRoomId, onD
     }
   }, [svgContent, prepareSVG, prepareBedSVG, loadingData, viewMode]);
 
-  // Переключение этажа
-  const changeFloor = (floor) => {
+  const changeFloor = useCallback((floor) => {
     if (currentFloorRef.current === floor) return;
     currentFloorRef.current = floor;
     setCurrentFloor(floor);
@@ -333,9 +327,8 @@ const DormMap = ({ dormId, onBack, onGoToDashboard, onLogout, initialRoomId, onD
     setPointX(0);
     setPointY(0);
     loadFloor(floor);
-  };
+  }, [loadFloor]);
 
-  // Перезагрузка SVG при смене режима
   useEffect(() => {
     if (viewMode) {
       setSvgContent('');
@@ -343,7 +336,6 @@ const DormMap = ({ dormId, onBack, onGoToDashboard, onLogout, initialRoomId, onD
     }
   }, [viewMode, loadFloor]);
 
-  // Обработка колеса мыши (зум)
   const handleWheel = useCallback((e) => {
     e.preventDefault();
     const rect = mapAreaRef.current.getBoundingClientRect();
@@ -367,7 +359,6 @@ const DormMap = ({ dormId, onBack, onGoToDashboard, onLogout, initialRoomId, onD
     return () => { if (mapArea) mapArea.removeEventListener('wheel', handleWheel); };
   }, [handleWheel]);
 
-  // Обработка клика по карте (комнаты / кровати)
   const handleMapClick = (e) => {
     if (viewModeRef.current === 'beds') {
       const bedEl = e.target.closest('.bed');
@@ -391,7 +382,6 @@ const DormMap = ({ dormId, onBack, onGoToDashboard, onLogout, initialRoomId, onD
       }
     }
 
-    // Режим комнат
     const roomGroup = e.target.closest('.map-room');
     if (roomGroup) {
       e.stopPropagation();
@@ -430,39 +420,38 @@ const DormMap = ({ dormId, onBack, onGoToDashboard, onLogout, initialRoomId, onD
     return () => { window.removeEventListener('mouseup', mu); window.removeEventListener('mousemove', mm); };
   }, [panning, startPan]);
 
-  // Переход к комнате/кровати
-  const goToRoom = (rawId) => {
+  // ИСПРАВЛЕНИЕ: Полностью переработана логика перехода, чтобы исключить баги с координатами
+  const goToRoom = useCallback((rawId) => {
     setShowGlobalDropdown(false);
     setShowGlobalFilterDropdown(false);
 
     if (viewModeRef.current === 'beds') {
-      // rawId – bedId (например, "120_1")
-      const roomNumber = rawId.split('_')[0];
+      const roomNumber = String(rawId).split('_')[0];
       const targetFloor = parseInt(roomNumber.charAt(0));
       const centerBed = () => {
         const attempt = (retries = 0) => {
           const el = document.querySelector(`[data-bed-id="${rawId}"]`) || document.getElementById(rawId);
-          if (!el) { if (retries < 30) setTimeout(() => attempt(retries + 1), 100); return; }
+          if (!el) { if (retries < 50) setTimeout(() => attempt(retries + 1), 100); return; }
           const area = mapAreaRef.current;
           const layer = zoomLayerRef.current;
-          if (!area || !layer) { if (retries < 30) setTimeout(() => attempt(retries + 1), 100); return; }
+          if (!area || !layer) { if (retries < 50) setTimeout(() => attempt(retries + 1), 100); return; }
           const elRect = el.getBoundingClientRect();
           const layerRect = layer.getBoundingClientRect();
           if (elRect.width === 0 || elRect.height === 0) {
-            if (retries < 30) setTimeout(() => attempt(retries + 1), 100);
+            if (retries < 50) setTimeout(() => attempt(retries + 1), 100);
             return;
           }
           const currentScaledDx = (elRect.left - layerRect.left) + elRect.width / 2;
           const currentScaledDy = (elRect.top - layerRect.top) + elRect.height / 2;
-          const unscaledDx = currentScaledDx / scale;
-          const unscaledDy = currentScaledDy / scale;
+          const unscaledDx = currentScaledDx / scaleRef.current;
+          const unscaledDy = currentScaledDy / scaleRef.current;
           const nScale = 2.0;
           const targetX = (area.clientWidth / 2) - unscaledDx * nScale;
           const targetY = (area.clientHeight / 2) - unscaledDy * nScale;
           setScale(nScale);
           setPointX(targetX);
           setPointY(targetY);
-          setSelectedRoomId(rawId);
+          setSelectedRoomId(String(rawId));
           const student = bedAssignments[rawId];
           setPopupRoom({ id: `Кровать ${rawId}`, capacity: 1, students: student ? [student] : [] });
         };
@@ -474,54 +463,85 @@ const DormMap = ({ dormId, onBack, onGoToDashboard, onLogout, initialRoomId, onD
       } else {
         setTimeout(centerBed, 100);
       }
-      return;
-    }
-
-    // Режим комнат (существующая логика)
-    const roomId = viewMode === 'rooms' ? normalizeRoomId(rawId) : rawId;
-    const targetFloor = parseInt(roomId.charAt(0));
-    const centerRoom = () => {
-      const attempt = (retries = 0) => {
-        let el = document.querySelector(`[data-room="${roomId}"]`);
-        if (!el && roomId.includes('/')) {
-          el = document.querySelector(`[data-room="${roomId.split('/')[0]}"]`);
-        }
-        if (!el) { if (retries < 30) setTimeout(() => attempt(retries + 1), 100); return; }
-        const area = mapAreaRef.current;
-        const layer = zoomLayerRef.current;
-        if (!area || !layer) { if (retries < 30) setTimeout(() => attempt(retries + 1), 100); return; }
-        const elRect = el.getBoundingClientRect();
-        const layerRect = layer.getBoundingClientRect();
-        if (elRect.width === 0 || elRect.height === 0) {
-          if (retries < 30) setTimeout(() => attempt(retries + 1), 100);
-          return;
-        }
-        const currentScaledDx = (elRect.left - layerRect.left) + elRect.width / 2;
-        const currentScaledDy = (elRect.top - layerRect.top) + elRect.height / 2;
-        const unscaledDx = currentScaledDx / scale;
-        const unscaledDy = currentScaledDy / scale;
-        const nScale = 2.0;
-        const targetX = (area.clientWidth / 2) - unscaledDx * nScale;
-        const targetY = (area.clientHeight / 2) - unscaledDy * nScale;
-        setScale(nScale);
-        setPointX(targetX);
-        setPointY(targetY);
-        setSelectedRoomId(roomId);
-        let room = roomsDataRef.current.find(r => r.id === roomId);
-        if (!room) room = { id: roomId, capacity: 2, students: [] };
-        setPopupRoom(room);
-      };
-      attempt();
-    };
-    if (targetFloor !== currentFloorRef.current) {
-      changeFloor(targetFloor);
-      setTimeout(centerRoom, 600);
     } else {
-      setTimeout(centerRoom, 100);
+      // Режим комнат
+      const roomId = normalizeRoomId(rawId);
+      const targetFloor = parseInt(roomId.charAt(0));
+      const centerRoom = () => {
+        const attempt = (retries = 0) => {
+          let el = document.querySelector(`[data-room="${roomId}"]`);
+          if (!el && roomId.includes('/')) {
+            el = document.querySelector(`[data-room="${roomId.split('/')[0]}"]`);
+          }
+          if (!el) { if (retries < 50) setTimeout(() => attempt(retries + 1), 100); return; }
+          const area = mapAreaRef.current;
+          const layer = zoomLayerRef.current;
+          if (!area || !layer) { if (retries < 50) setTimeout(() => attempt(retries + 1), 100); return; }
+          const elRect = el.getBoundingClientRect();
+          const layerRect = layer.getBoundingClientRect();
+          if (elRect.width === 0 || elRect.height === 0) {
+            if (retries < 50) setTimeout(() => attempt(retries + 1), 100);
+            return;
+          }
+          const currentScaledDx = (elRect.left - layerRect.left) + elRect.width / 2;
+          const currentScaledDy = (elRect.top - layerRect.top) + elRect.height / 2;
+          const unscaledDx = currentScaledDx / scaleRef.current; // Используем актуальный масштаб!
+          const unscaledDy = currentScaledDy / scaleRef.current;
+          const nScale = 2.0;
+          const targetX = (area.clientWidth / 2) - unscaledDx * nScale;
+          const targetY = (area.clientHeight / 2) - unscaledDy * nScale;
+          setScale(nScale);
+          setPointX(targetX);
+          setPointY(targetY);
+          setSelectedRoomId(roomId);
+          let room = roomsDataRef.current.find(r => r.id === roomId);
+          if (!room) room = { id: roomId, capacity: 2, students: [] };
+          setPopupRoom(room);
+        };
+        attempt();
+      };
+      if (targetFloor !== currentFloorRef.current) {
+        changeFloor(targetFloor);
+        setTimeout(centerRoom, 600);
+      } else {
+        setTimeout(centerRoom, 100);
+      }
     }
-  };
+  }, [changeFloor, bedAssignments]);
 
-  // Поиск (глобальный и локальный) – оставлен без изменений, кроме карточек студентов
+  // ИСПРАВЛЕНИЕ: Безупречный слушатель глобального поиска (из Header.jsx)
+  useEffect(() => {
+    if (initialRoomId) {
+      setViewMode('rooms'); // Принудительно сбрасываем в "комнаты", так как глобальный поиск выдает комнаты
+      const timer = setTimeout(() => goToRoom(initialRoomId), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [initialRoomId, goToRoom]);
+
+  // Гидратация попапа: если мы зумим комнату до того как загрузились студенты
+  useEffect(() => {
+    if (selectedRoomId && roomsData.length > 0) {
+      if (viewMode === 'beds') {
+        const student = bedAssignments[selectedRoomId];
+        setPopupRoom({
+          id: `Кровать ${selectedRoomId}`,
+          capacity: 1,
+          students: student ? [student] : []
+        });
+      } else {
+        const matchingRooms = roomsData.filter(r => 
+          r.id === selectedRoomId || r.id.startsWith(selectedRoomId + '/')
+        );
+        if (matchingRooms.length > 0) {
+          const allStudents = matchingRooms.reduce((acc, r) => acc.concat(r.students), []);
+          const totalCapacity = matchingRooms.reduce((acc, r) => acc + r.capacity, 0);
+          const displayTitle = matchingRooms.length > 1 ? `Блок ${selectedRoomId}` : matchingRooms[0].id;
+          setPopupRoom({ id: displayTitle, capacity: totalCapacity, students: allStudents });
+        }
+      }
+    }
+  }, [roomsData, bedAssignments, selectedRoomId, viewMode]);
+
   const executeGlobalSearch = useCallback(() => {
     const q = globalSearchRef.current?.value.toLowerCase().trim() || '';
     if (!q && activeGlobalFaculties.length === 0) { setGlobalSearchResults([]); setShowGlobalDropdown(false); return; }
@@ -546,18 +566,25 @@ const DormMap = ({ dormId, onBack, onGoToDashboard, onLogout, initialRoomId, onD
   }, []);
 
   const localSearch = () => {
-    const onClickAction = viewMode === 'beds' 
-        ? () => goToRoom(s.bedId) 
-        : () => goToRoom(r.id);  
     const q = localSearchQuery.toLowerCase().trim();
     const f = localFacultyFilter;
-    if (!q && f === 'all') return <p className="empty-msg">Введите запрос для поиска</p>;
+
+    // Если нет ни текста, ни фильтра — просим ввести данные
+    if (!q && f === 'all') return <p className="empty-msg">Введите запрос для поиска или выберите факультет</p>;
+
     const cards = [];
     roomsData.forEach(r => {
-      r.students.forEach((s, idx) => {
-        if ((q && (s.name.toLowerCase().includes(q) || r.id.includes(q))) && (f === 'all' || s.fac === f)) {
+      r.students.forEach((s) => {
+        // Если запрос пустой, то matchQuery = true (пропускаем всех). 
+        // Иначе проверяем совпадение по имени или номеру комнаты.
+        const matchQuery = !q || s.name.toLowerCase().includes(q) || String(r.id).toLowerCase().includes(q);
+        
+        // Сравниваем факультеты без учета регистра и пробелов (на случай различий с бэкендом)
+        const matchFaculty = f === 'all' || (s.fac && s.fac.toLowerCase().trim() === f.toLowerCase().trim());
+
+        if (matchQuery && matchFaculty) {
           cards.push(
-            <div className="student-card" key={s.contract} onClick={() => goToRoom(s.bedId)}>
+            <div className="student-card" key={s.contract} onClick={() => goToRoom(viewMode === 'beds' ? s.bedId : r.id)}>
               <h4>{s.name}</h4>
               <p><b>Комната:</b> {r.id} (кровать {s.bed})</p>
               <p><b>Факультет:</b> {s.fac}</p>
@@ -565,7 +592,9 @@ const DormMap = ({ dormId, onBack, onGoToDashboard, onLogout, initialRoomId, onD
           );
         }
       });
-      if (r.students.length === 0 && q && r.id.includes(q) && f === 'all') {
+
+      // Пустые комнаты показываем, только если ищем конкретно по номеру (q) и не выбран факультет
+      if (r.students.length === 0 && q && String(r.id).toLowerCase().includes(q) && f === 'all') {
         cards.push(
           <div className="student-card free" key={`free-${r.id}`} onClick={() => goToRoom(r.id)}>
             <h4>Комната {r.id}</h4><p>Свободна</p>
@@ -573,8 +602,39 @@ const DormMap = ({ dormId, onBack, onGoToDashboard, onLogout, initialRoomId, onD
         );
       }
     });
+
     return cards.length ? cards : <p className="empty-msg">Ничего не найдено</p>;
   };
+
+  useEffect(() => {
+    // Небольшая задержка, чтобы React успел обновить selectedRoomIdRef
+    const timer = setTimeout(() => {
+      if (viewMode === 'rooms') {
+        updateMapColors();
+      } else if (viewMode === 'beds') {
+        updateBedColors();
+      }
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [selectedRoomId, viewMode, updateMapColors, updateBedColors]);
+
+  // Сброс выделения по нажатию клавиши Escape
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setPopupRoom(null);
+        setSelectedRoomId(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    
+    // Обязательно удаляем слушатель при размонтировании компонента, 
+    // чтобы не плодить "утечки" памяти
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []); // Пустой массив зависимостей, чтобы создать слушатель один раз при загрузке
 
   if (loadingData) return <div className="loading-spinner">Загрузка данных...</div>;
   if (dataError) return <div className="error-message">{dataError}</div>;
@@ -590,7 +650,7 @@ const DormMap = ({ dormId, onBack, onGoToDashboard, onLogout, initialRoomId, onD
             <input type="text" className="local-search-input" placeholder="ФИО, комната..." value={localSearchQuery} onChange={e => setLocalSearchQuery(e.target.value)} />
             <select className="local-filter-select" value={localFacultyFilter} onChange={e => setLocalFacultyFilter(e.target.value)}>
               <option value="all">Все факультеты</option>
-              <option value="МехМат">МехМат</option><option value="ФизФак">ФизФак</option><option value="ФИТ">ФИТ</option><option value="Эконом">Эконом</option>
+              <option value="ММФ">ММФ</option><option value="ФФ">ФФ</option><option value="ФИТ">ФИТ</option><option value="ЭФ">ЭФ</option><option value="ГГФ">ГГФ</option><option value="ФЕН">ФЕН</option><option value="ГИФ">ГИФ</option><option value="ИФиП">ИфИп</option><option value="ГИ">ГИ</option>
             </select>
           </div>
           <div className="info-list">{localSearch()}</div>
@@ -628,10 +688,33 @@ const DormMap = ({ dormId, onBack, onGoToDashboard, onLogout, initialRoomId, onD
           )}
 
           {/* Переключатель этажей */}
-          <div className="floor-switcher">
-            {[1,2,3].map(f => (
-              <button key={f} className={`floor-btn ${currentFloor === f ? 'active' : ''}`} onClick={() => changeFloor(f)}>{f} Этаж</button>
-            ))}
+          <div className="floor-switcher" style={{ background: '#fff', borderRadius: '8px', padding: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+            <div 
+              onClick={() => setFloorSwitcherCollapsed(!floorSwitcherCollapsed)} 
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}
+              title="Нажмите, чтобы свернуть/развернуть список этажей"
+            >
+              <h4 style={{ margin: 0 }}>
+                {floorSwitcherCollapsed ? `${currentFloor} Этаж` : 'Выбор этажа'}
+              </h4>
+              <span style={{ fontSize: '12px', marginLeft: '12px' }}>
+                {floorSwitcherCollapsed ? '▼' : '▲'}
+              </span>
+            </div>
+            
+            {!floorSwitcherCollapsed && (
+              <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {[1,2,3,4,5,6].map(f => (
+                  <button 
+                    key={f} 
+                    className={`floor-btn ${currentFloor === f ? 'active' : ''}`} 
+                    onClick={() => changeFloor(f)}
+                  >
+                    {f} Этаж
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Блок выбора режима и легенда */}
@@ -650,22 +733,38 @@ const DormMap = ({ dormId, onBack, onGoToDashboard, onLogout, initialRoomId, onD
                 По кроватям
               </button>
             </div>
+            
             <div className="legend">
-              <h4>Легенда факультетов</h4>
-              {Object.entries(facultyColors).map(([fac, color]) => {
-                if (fac === 'default') return null;
-                return (
-                  <div key={fac} className="legend-item">
-                    <span className="color-box" style={{ backgroundColor: color }}></span>
-                    <span className="legend-label">{fac}</span>
-                  </div>
-                );
-              })}
-              <div className="legend-item">
-                <span className="color-box" style={{ backgroundColor: '#f5f5f5', border: '1px solid #b0bec5' }}></span>
-                <span className="legend-label">Свободно</span>
+              <div 
+                onClick={() => setLegendCollapsed(!legendCollapsed)} 
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}
+                title="Нажмите, чтобы свернуть/развернуть легенду"
+              >
+                <h4 style={{ margin: 0 }}>Легенда факультетов</h4>
+                <span style={{ fontSize: '12px', marginLeft: '8px' }}>
+                  {legendCollapsed ? '▼' : '▲'}
+                </span>
               </div>
+              
+              {!legendCollapsed && (
+                <div style={{ marginTop: '12px' }}>
+                  {Object.entries(facultyColors).map(([fac, color]) => {
+                    if (fac === 'default') return null;
+                    return (
+                      <div key={fac} className="legend-item">
+                        <span className="color-box" style={{ backgroundColor: color }}></span>
+                        <span className="legend-label">{fac}</span>
+                      </div>
+                    );
+                  })}
+                  <div className="legend-item">
+                    <span className="color-box" style={{ backgroundColor: '#f5f5f5', border: '1px solid #b0bec5' }}></span>
+                    <span className="legend-label">Свободно</span>
+                  </div>
+                </div>
+              )}
             </div>
+
           </div>
         </div>
       </div>
