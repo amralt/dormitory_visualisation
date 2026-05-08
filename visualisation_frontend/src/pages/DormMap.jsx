@@ -274,6 +274,7 @@ const DormMap = ({ dormId, onBack, onGoToDashboard, onLogout, initialRoomId, onD
     setTimeout(() => {
       const beds = document.querySelectorAll('.zoom-layer svg rect[id], .zoom-layer svg path[id], .zoom-layer svg polygon[id]');
       beds.forEach(bed => {
+        if (!bed.getAttribute('id').match(/^\d+_\d+$/)) return; 
         bed.classList.add('bed');
         bed.setAttribute('data-bed-id', bed.id);
         bed.style.cursor = 'pointer';
