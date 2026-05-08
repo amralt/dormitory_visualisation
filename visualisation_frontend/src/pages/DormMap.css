@@ -748,3 +748,22 @@ svg {
   font-size: 13px;
   color: var(--text-muted);
 }
+
+/* --- ПОДСВЕТКА ВЫБРАННОЙ КОМНАТЫ --- */
+/* Применяем стили обводки ко всем фигурам внутри выбранной группы */
+.map-room.status-selected rect,
+.map-room.status-selected path,
+.map-room.status-selected polygon {
+  stroke: #007bff !important; /* Яркий синий цвет выделения */
+  stroke-width: 5px !important; /* Толщина линии */
+  filter: drop-shadow(0px 0px 6px rgba(0, 123, 255, 0.8)); /* Эффект свечения */
+  transition: stroke 0.3s ease, filter 0.3s ease;
+}
+
+/* --- ПОДСВЕТКА ВЫБРАННОЙ КРОВАТИ --- */
+.bed.bed-selected {
+  stroke: #007bff !important;
+  stroke-width: 4px !important;
+  filter: drop-shadow(0px 0px 5px rgba(0, 123, 255, 0.8));
+  transition: stroke 0.3s ease, filter 0.3s ease;
+}
