@@ -2,3 +2,384 @@
     background-color: #f1f5f9;
     transition: background-color 0.2s ease;
 }
+/* Основа для страницы выгрузки */
+.download-page {
+  min-height: 100vh;
+  height: 100%;
+  overflow-y: auto !important;   /* уже есть */
+}
+
+.download-main-content {
+  padding: 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  /* убираем flex-grow: 1, если он мешает */
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  /* не ставить height: 100% */
+}
+
+/* Шапка с кнопкой слева и заголовком по центру */
+.sub-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* равномерно распределяет: кнопка слева, заголовок по центру, пустой блок справа */
+  gap: 20px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.sub-header .page-title {
+  margin: 0; /* убираем лишние отступы, чтобы заголовок был ровно по центру */
+  text-align: center;
+  flex: 1; /* занимает оставшееся место, прижимая кнопку влево, а пустой блок вправо */
+}
+
+/* Пустой блок для баланса (невидимый, но нужен для центрирования) */
+.sub-header .spacer {
+  width: 0;
+  visibility: hidden;
+}
+
+
+.page-title {
+  margin: 0 0 10px 0;
+  color: #1565C0;
+  font-size: 31px;
+  text-align: center;
+}
+
+/* Панель управления (белая плашка) */
+.control-panel {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  border: 1px solid #cfd8dc;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.filters-group {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filter-item label {
+  font-size: 15.5px;
+  font-weight: bold;
+  color: #607d8b;
+}
+
+.filter-item select {
+  padding: 10px 15px;
+  border-radius: 8px;
+  border: 1px solid #cfd8dc;
+  outline: none;
+  font-size: 16.5px;
+  min-width: 180px;
+  background: #f8f9fa;
+  cursor: pointer;
+}
+
+.filter-item select:focus {
+  border-color: #29b6f6;
+}
+
+/* Зелёная кнопка скачивания */
+.download-excel-btn {
+  background: #4caf50;
+  color: white;
+  border: none;
+  padding: 10px 20px;          /* было 8px 16px → умножили на 1.5 */
+  border-radius: 10px;         /* было 8px → можно тоже увеличить для пропорции */
+  font-weight: bold;
+  font-size: 18px;             /* было 14px → 14 * 1.5 = 21 */
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 7px;                    /* было 6px → 6 * 1.5 = 9 */
+  transition: 0.2s;
+  box-shadow: 0 3px 7px rgba(76, 175, 80, 0.3); /* немного увеличили тень (было 0 2px 5px) */
+}
+
+.download-excel-btn svg {
+  width: 20px;                 /* было 16px → 16 * 1.5 = 24 */
+  height: 20px;
+}
+
+.download-excel-btn:hover {
+  background: #43a047;
+  transform: translateY(-2px);
+}
+
+/* Контейнер таблицы – серая подложка с закруглениями */
+.table-container {
+  background: #f0f2f5;           /* цвет фона страницы (серый) */
+  border-radius: 12px;
+  /* box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05); */
+  border: 1px solid #f0f2f5;
+  /* убран overflow: hidden и белый фон */
+}
+
+/* Обёртка с прокруткой – гарантированный вертикальный скролл */
+.table-wrapper {
+  overflow-x: auto;
+  overflow-y: auto;      /* или scroll, если auto не срабатывает */
+  max-height: 500px;
+  border-radius: 12px;
+  background: transparent;
+  display: block;
+}
+
+/* Убедимся, что скролл виден и удобен */
+.table-wrapper::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+  background: #e0e4e8;
+  border-radius: 10px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: #b0b8c0;
+  border-radius: 10px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #909aa4;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  background: white; /* фон только у самой таблицы */
+  margin: 0;
+  padding: 0;
+}
+
+th {
+  background-color: white;
+  padding: 15px 25px;
+  color: #607d8b;
+  font-size: 14.5px;
+  text-transform: uppercase;
+  border-bottom: 2px solid #cfd8dc;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  box-sizing: border-box;
+}
+
+td {
+  padding: 15px 25px;
+  border-bottom: 1px solid #f0f2f5;
+  font-size: 16.5px;
+  background: white;
+  box-sizing: border-box;
+}
+
+/* остальные стили без изменений */
+.table-row-hover:hover {
+  background-color: #f1f5f9;
+  transition: background-color 0.2s ease;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #607d8b;
+  font-size: 17.5px;
+}
+
+/* Кнопка возврата */
+.back-btn {
+  /* Кнопка возврата – в стиле, как вы показали */
+    background: white;
+    border: 2px solid var(--border-color);
+    padding: 10px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.2s;
+    justify-self: start;  /* оставляем для grid-выравнивания */          /* убираем подчёркивание, если вдруг <a> */
+}
+
+.text-btn:hover {
+    background-color: #f0f2f5;
+    border-color: #b0bec5;
+    transform: translateY(-1px);
+}
+
+.loading-spinner,
+.error-message {
+  text-align: center;
+  padding: 40px;
+  font-size: 18px;
+  color: #1565C0;
+}
+
+/* Растягиваем таблицу на всю ширину и распределяем колонки */
+.preview-table {
+  width: 100%;
+  table-layout: fixed; /* фиксированная ширина колонок */
+}
+
+/* Задаём ширину каждой колонке в % */
+.preview-table th:nth-child(1),
+.preview-table td:nth-child(1) { width: 5%; }   /* ID */
+
+.preview-table th:nth-child(2),
+.preview-table td:nth-child(2) { width: 35%; }  /* ФИО Студента */
+
+.preview-table th:nth-child(3),
+.preview-table td:nth-child(3) { width: 15%; }  /* Факультет */
+
+.preview-table th:nth-child(4),
+.preview-table td:nth-child(4) { width: 20%; }  /* Общежитие */
+
+.preview-table th:nth-child(5),
+.preview-table td:nth-child(5) { width: 10%; }  /* Комната */
+
+.preview-table th:nth-child(6),
+.preview-table td:nth-child(6) { width: 15%; }  /* Форма обучения */
+
+/* Гарантированный вертикальный скролл для всей страницы */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: auto;
+  min-height: 100%;
+}
+
+/* Контейнер для заголовка и кнопки «Назад» – располагает их в одну строку */
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* распределяет пространство */
+  margin-bottom: 20px;
+}
+
+/* Заголовок – растягивается и выравнивается по центру */
+.header-row .page-title {
+  flex: 1;           /* занимает всё доступное пространство между кнопкой и правым краем */
+  text-align: center;
+  margin: 0;         /* убираем лишние отступы */
+}
+
+/* Кнопка остаётся слева, без дополнительных стилей */
+.header-row .text-btn {
+  /* можно оставить как есть */
+}
+
+.header-row {
+  position: relative;           /* чтобы кнопка позиционировалась относительно этого блока */
+  display: flex;
+  align-items: center;
+  justify-content: center;      /* центрируем содержимое по горизонтали */
+  width: 100%;
+  margin-bottom: 24px;          /* при желании можно оставить тот же отступ снизу */
+}
+
+.back-btn {
+  position: absolute;
+  left: 0;                      /* привязана к левому краю, но … */
+  transform: translateX(-50%);   /* … сдвигаем вправо на половину своей ширины */
+  white-space: nowrap;          /* чтобы текст не переносился */
+}
+
+.page-title {
+  margin: 0;                    /* убираем лишние отступы */
+  text-align: center;
+  font-size: 1.8rem;            /* подберите размер под свой дизайн */
+  font-weight: 600;
+}
+
+/* Multi-Select Dropdown */
+.multi-select-container {
+  position: relative;
+  width: 100%;
+  min-width: 160px;
+}
+
+.multi-select-header {
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+.multi-select-header .arrow {
+  font-size: 12px;
+  transition: transform 0.2s;
+}
+
+.multi-select-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  margin-top: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.multi-select-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.multi-select-item:hover {
+  background-color: #f5f5f5;
+}
+
+.multi-select-item input {
+  margin: 0;
+  cursor: pointer;
+}
+
+.reset-filters-btn {
+  background: #f0f0f0;
+  border: 1px solid #ccc;
+  padding: 0 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  height: 34px;
+  align-self: flex-end;
+  margin-left: auto;
+}
+
+.reset-filters-btn:hover {
+  background: #e0e0e0;
+}
