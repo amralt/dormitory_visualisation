@@ -159,6 +159,7 @@ function App() {
           setSelectedRoom(null);
           }}
           onLogout={handleLogout}
+          selectedDormitory = {selectedDorm}
         />
       )}
       </div>
