@@ -188,39 +188,42 @@ const Dashboard = ({ dormId, onBack, onLogout, onDownloadClick, userName }) => {
     <>
       <div className="app-container">
         <main className="main-content">
-          <div className="page-header">
-            <button style={{marginRight: 0}} className="back-btn" onClick={onBack}>← Вернуться к списку</button>
+          <div className="center" style={{display: 'flex', maxWidth: '1200px', width:'100%', margin: 'auto'}}>
 
-            <h1>{titleText}</h1>
-            <div className="dropdown-wrapper" ref={dropdownRef}>
-              <button className="dropdown-btn" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
-                {btnText}
-              </button>
-              {isDropdownOpen && (
-                <div className="dropdown-menu">
-                  <div className="dropdown-actions-top">
-                    <button className="text-btn" onClick={() => setSelectedDorms(availableDorms)}>Выбрать все</button>
-                    <button className="text-btn" onClick={() => setSelectedDorms([])}>Сбросить</button>
+            <div className="header-row">
+              <button  className="back-btn" onClick={onBack}>← Вернуться к списку</button>
+
+              <h1 className='page-title'>{titleText}</h1>
+              <div className="dropdown-wrapper" ref={dropdownRef}>
+                <button className="dropdown-btn" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
+                  {btnText}
+                </button>
+                {isDropdownOpen && (
+                  <div className="dropdown-menu">
+                    <div className="dropdown-actions-top">
+                      <button className="text-btn" onClick={() => setSelectedDorms(availableDorms)}>Выбрать все</button>
+                      <button className="text-btn" onClick={() => setSelectedDorms([])}>Сбросить</button>
+                    </div>
+                    <div className="checkbox-grid">
+                      {availableDorms.map(name => (
+                        <label key={name} className="checkbox-item">
+                          <input 
+                            type="checkbox" 
+                            checked={selectedDorms.includes(name)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedDorms(prev => [...prev, name]);
+                              } else {
+                                setSelectedDorms(prev => prev.filter(d => d !== name));
+                              }
+                            }}
+                            /> {name.replace('Общежитие ', 'Общ. №')}
+                        </label>
+                      ))}
+                    </div>
                   </div>
-                  <div className="checkbox-grid">
-                    {availableDorms.map(name => (
-                      <label key={name} className="checkbox-item">
-                        <input 
-                          type="checkbox" 
-                          checked={selectedDorms.includes(name)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedDorms(prev => [...prev, name]);
-                            } else {
-                              setSelectedDorms(prev => prev.filter(d => d !== name));
-                            }
-                          }}
-                        /> {name.replace('Общежитие ', 'Общ. №')}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
 

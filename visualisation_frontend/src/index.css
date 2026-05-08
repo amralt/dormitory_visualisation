@@ -62,8 +62,6 @@ body { margin: 0; font-family: 'Roboto', sans-serif; background-color: var(--bg-
 .menu-icon { width: 20px; height: 20px; flex-shrink: 0; display: flex; justify-content: center; align-items: center; }
 
 .main-content { flex-grow: 1; padding: 30px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
-.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-.page-header h1 { margin: 0; color: #1565C0; font-size: 26px; }
 
 /* ... (здесь идут стили графиков, выпадающего меню дашборда из прошлого шага - они сохранены) ... */
 .dropdown-wrapper { position: relative; display: inline-block; }
