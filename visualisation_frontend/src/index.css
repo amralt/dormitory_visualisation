@@ -33,9 +33,13 @@ body { margin: 0; font-family: 'Roboto', sans-serif; background-color: var(--bg-
     display: flex;
     align-items: center;
     gap: 11px;
-    font-size: 16px;                /* было 15.5px */
+    font-size: 16px;
     border-left: 1px solid rgba(255,255,255,0.2);
     padding-left: 22px;
+    background-color: #FFA500; /* Оранжевый цвет фона */
+    border-radius: 12px; /* Скругление углов */
+    padding: 9px 18px; /* Добавим внутренние отступы для красоты */
+
 }
 
 .user-name-text {
@@ -247,3 +251,101 @@ body { margin: 0; font-family: 'Roboto', sans-serif; background-color: var(--bg-
 }
 
 .go-btn:hover { background: #0d47a1; }
+
+/* ... (остальные стили из index.css) ... */
+
+/* Белая строка поиска */
+.search-bar {
+  display: flex;
+  align-items: center;
+  background: white;
+  border-radius: 22px;
+  width: 100%;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.search-bar-icon {
+  margin-left: 14px;
+  margin-right: 8px;
+  color: #9e9e9e;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.search-input-field {
+  flex-grow: 1;
+  border: none;
+  outline: none;
+  font-size: 15.5px;
+  padding: 11px 0;
+  background: transparent;
+  color: #263238;
+}
+
+.search-input-field::placeholder {
+  color: #9e9e9e;
+}
+
+/* Кнопка фильтра внутри строки */
+.filter-btn-inside {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  color: #1565C0;
+  transition: 0.2s;
+  border-left: 1px solid #e0e0e0;
+  margin-left: 4px;
+  position: relative;
+}
+
+.filter-btn-inside:hover {
+  color: #0d47a1;
+}
+
+/* Кружок с количеством фильтров (галочка) */
+.filter-count-badge {
+  position: absolute;
+  top: -4px;
+  right: 2px;
+  background: #4caf50;
+  color: white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  font-weight: bold;
+}
+
+/* Выпадающий фильтр (по умолчанию под поиском) */
+.header-filter-dropdown {
+  position: absolute;
+  top: 30px;
+  right: -250px;
+  width: 220px;
+  background: white;
+  color: #263238;
+  border: 1px solid #cfd8dc;
+  border-radius: 12px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+  padding: 15px;
+  z-index: 1002;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Если справа есть результаты, фильтр сдвигается вправо к результатам */
+.filter-next-to-results {
+  left: calc(100% + 12px);   /* появляется справа от выпадающего списка */
+  right: auto;
+  top: 8px;
+}
