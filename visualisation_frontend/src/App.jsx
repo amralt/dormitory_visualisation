@@ -26,9 +26,10 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (currentPage !== 'dashboard') 
+    if (currentPage !== 'dashboard' && currentPage !== 'download') {
       setLastPage(currentPage);
-  }, [currentPage])
+    }
+  }, [currentPage]);
 
   const handleLoginSuccess = () => {
     // после успешного логина имя уже в localStorage, обновляем состояние
@@ -85,7 +86,6 @@ function App() {
           userName={userName}
           onLogout={handleLogout}
           onStatClick={() => setCurrentPage('dashboard')}
-          onDownloadClick={() => setCurrentPage('download')}
           onPersonClick={(dormId, roomId) => {
             setSelectedDorm(dormId);
             setSelectedRoom(roomId);
@@ -154,7 +154,7 @@ function App() {
       {currentPage === 'download' && (
         <Download
         onBack={() => {
-          setCurrentPage('cards');
+          setCurrentPage('dashboard');
           setSelectedDorm(null);
           setSelectedRoom(null);
           }}

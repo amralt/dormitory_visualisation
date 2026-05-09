@@ -183,7 +183,7 @@ const Download = ({ onBack, onLogout, selectedDormitory }) => {
     <div className="download-page">
       <main className="download-main-content">
         <div className="header-row">
-          <button className="back-btn" onClick={onBack}>← Вернуться на главную страницу</button>
+          <button className="back-btn" onClick={onBack}>← Вернуться к статистике</button>
           <h1 className="page-title">Выгрузка базы данных</h1>
         </div>
 
