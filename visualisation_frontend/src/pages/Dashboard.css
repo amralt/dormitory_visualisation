@@ -10,3 +10,45 @@
 .text-btn:hover {
   color: #0b5cab;
 }
+.tab-buttons {
+  display: flex;
+  gap: 10px;
+}
+.tab-btn {
+  padding: 10px 20px;
+  border: 1px solid #cfd8dc;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  color: #607d8b;
+  transition: 0.2s;
+}
+.tab-btn.active {
+  background: #1565C0;
+  color: white;
+  border-color: #1565C0;
+}
+.tab-btn:hover:not(.active) {
+  background: #e3f2fd;
+}
+
+.header-row-dashboard {
+  position: relative;           /* чтобы кнопка позиционировалась относительно этого блока */
+  display: flex;
+  align-items: center;
+  justify-content: space-around;     
+  width: 100%;
+  margin-bottom: 24px;          /* при желании можно оставить тот же отступ снизу */
+}
+
+.back-btn-dashboard {
+  background: white;
+    border: 2px solid var(--border-color);
+    padding: 10px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.2s;
+    justify-self: start; 
+}

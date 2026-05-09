@@ -191,9 +191,11 @@ const Dashboard = ({ dormId, onBack, onLogout, onDownloadClick, userName }) => {
     <>
       <div className="app-container">
         <main className="main-content">
-          <div className="page-header">
-            <button style={{marginRight: 0}} className="back-btn" onClick={onBack}>← Вернуться к списку</button>
-
+          <div className="header-row-dashboard">
+            <button style={{marginRight: 0}} className="back-btn-dashboard" onClick={onBack}>← Вернуться к списку</button>
+            <button className="dropdown-btn" onClick={onDownloadClick}>
+              СКАЧАТЬ ТАБЛИЦУ
+            </button>
             <h1>{titleText}</h1>
             <div className="dropdown-wrapper" ref={dropdownRef}>
               <button className="dropdown-btn" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>

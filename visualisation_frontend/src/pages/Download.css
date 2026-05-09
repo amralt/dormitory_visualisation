@@ -287,7 +287,10 @@ html, body {
 .header-row .text-btn {
   /* можно оставить как есть */
 }
-
+.download-embedded {
+  background: transparent;
+  padding: 0;
+}
 .header-row {
   position: relative;           /* чтобы кнопка позиционировалась относительно этого блока */
   display: flex;

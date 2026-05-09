@@ -203,9 +203,7 @@ const Header = ({
       </div>
 
       <div className="nav-right">
-        <button className="stat-btn" onClick={onDownloadClick}>
-          СКАЧАТЬ ТАБЛИЦУ
-        </button>
+        
         <button className="stat-btn" onClick={onStatClick}>
           СТАТИСТИКА
         </button>
