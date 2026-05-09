@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { fetchDormitories, fetchDormitoryStats, searchStudents } from '../pages/api';
 
 const Header = ({
@@ -8,8 +8,6 @@ const Header = ({
   onDownloadClick,
   onPersonClick,
   onLogoClick,
-  // можно добавить onFilterChange, если родитель хочет получать выбранные факультеты
-  // onFilterChange,
 }) => {
   const [peopleSearch, setPeopleSearch] = useState('');
   const [filteredPeople, setFilteredPeople] = useState([]);
@@ -19,7 +17,9 @@ const Header = ({
   const [dormsData, setDormsData] = useState({});
   const [loadingFaculties, setLoadingFaculties] = useState(true);
 
-  // Загрузка списка общежитий и их статистики (только visible)
+  const searchContainerRef = useRef(null);
+
+  // Загрузка статистики (как было)
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -48,7 +48,7 @@ const Header = ({
     loadData();
   }, []);
 
-  // Поиск студентов
+  // Поиск (как было)
   useEffect(() => {
     const query = peopleSearch.trim();
     if (!query) {
@@ -68,7 +68,8 @@ const Header = ({
     return () => clearTimeout(timer);
   }, [peopleSearch]);
 
-  // Все факультеты (кафедры) из видимых общежитий
+ 
+  // Все факультеты
   const allFaculties = Array.from(
     new Set(
       Object.values(dormsData).flatMap(data =>
@@ -93,7 +94,7 @@ const Header = ({
     }
   };
 
-  // ФИЛЬТРАЦИЯ по department (кафедра), а не organisation
+  // Фильтрация результатов
   const displayedPeople =
     selectedFaculties.length > 0
       ? filteredPeople.filter(student =>
@@ -117,17 +118,30 @@ const Header = ({
       <div className="search-container">
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', width: '100%' }}>
           <div className="search-input-wrapper" style={{ position: 'relative' }}>
-            <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              type="text"
-              className="search-input"
-              placeholder="Поиск проживающего (ФИО)..."
-              value={peopleSearch}
-              onChange={e => setPeopleSearch(e.target.value)}
-            />
+            <div className="search-bar">
+              <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input
+                type="text"
+                className="search-input"
+                placeholder="Поиск проживающего (ФИО)..."
+                value={peopleSearch}
+                onChange={e => setPeopleSearch(e.target.value)}
+              />
+              <button
+                className={`filter-btn-inside ${selectedFaculties.length > 0 ? 'filter-btn-active' : ''}`}
+                onClick={() => setShowFilter(!showFilter)}
+                type="button"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                </svg>
+                {selectedFaculties.length > 0 && <span className="filter-indicator">✓</span>}
+              </button>
+            </div>
+
             {shouldShowDropdown && (
               <div className="search-results-dropdown" style={{ display: 'block' }}>
                 {displayedPeople.map((student, idx) => (
@@ -158,12 +172,6 @@ const Header = ({
           </div>
 
           <div className="header-filter-wrapper" style={{ position: 'relative' }}>
-            <button className="filter-btn" onClick={() => setShowFilter(!showFilter)}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-              </svg>
-              Фильтры
-            </button>
             {showFilter && (
               <div className="header-filter-dropdown show">
                 <b>Выберите факультеты:</b>
@@ -199,11 +207,12 @@ const Header = ({
               </div>
             )}
           </div>
+
+          
         </div>
       </div>
 
       <div className="nav-right">
-        
         <button className="stat-btn" onClick={onStatClick}>
           СТАТИСТИКА
         </button>
