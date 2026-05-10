@@ -2,11 +2,20 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
 import { Pie, Bar } from 'react-chartjs-2';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
-import { fetchDormitoryStats, fetchDormitories } from './api';
+import { fetchDormitoryStats, fetchDormitories, filterResidents } from './api';
 import facultyColors from '../config/facultyColors';
 import './Dashboard.css'
-
+import { getFormColor } from '../config/formofstudy_colors';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, ChartDataLabels);
+
+const categoryColors = {
+  'Бюджет': '#4caf50',
+  'Контракт': '#ff9800',
+  'Аспирант': '#9c27b0',
+  'Целевое': '#00bcd4',
+  'Не указано': '#9e9e9e',
+};
+const getCategoryColor = (cat) => categoryColors[cat] || '#607d8b';
 
 const customBgPlugin = {
   id: 'customBg',
@@ -29,19 +38,18 @@ const Dashboard = ({ dormId, onBack, onLogout, onDownloadClick, userName }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedDorms, setSelectedDorms] = useState([]);
   const [statsMap, setStatsMap] = useState({});
-  const [availableDorms, setAvailableDorms] = useState([]); // имена видимых общежитий
+  const [availableDorms, setAvailableDorms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showAllFaculties, setShowAllFaculties] = useState(false);
+  const [allStudents, setAllStudents] = useState([]);         // список всех студентов
+const [isStackedMode, setStackedMode] = useState(false);    // режим stacked bar
 
-  // 1. Загружаем список видимых общежитий
-  // 2. Затем для них загружаем статистику
   useEffect(() => {
     const loadDormsAndStats = async () => {
       setLoading(true);
       setError(null);
       try {
-        // Получаем все общежития и фильтруем visible === true
         const allDorms = await fetchDormitories();
         const visibleDorms = allDorms.map(d => d.name);
         setAvailableDorms(visibleDorms);
@@ -52,7 +60,6 @@ const Dashboard = ({ dormId, onBack, onLogout, onDownloadClick, userName }) => {
           return;
         }
 
-        // Загружаем статистику для каждого видимого общежития
         const results = await Promise.all(
           visibleDorms.map(async (name) => {
             try {
@@ -79,13 +86,11 @@ const Dashboard = ({ dormId, onBack, onLogout, onDownloadClick, userName }) => {
     loadDormsAndStats();
   }, []);
 
-  // Установка выбранных общежитий при изменении dormId или загрузке списка
   useEffect(() => {
     if (availableDorms.length === 0) return;
     if (dormId && availableDorms.includes(dormId)) {
       setSelectedDorms([dormId]);
     } else {
-      // Если не передан конкретный dormId — выбираем все видимые общежития
       setSelectedDorms(availableDorms);
     }
   }, [dormId, availableDorms]);
@@ -100,7 +105,18 @@ const Dashboard = ({ dormId, onBack, onLogout, onDownloadClick, userName }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Агрегация данных по выбранным общежитиям
+  useEffect(() => {
+  const loadAllStudents = async () => {
+    try {
+      const students = await filterResidents({});  // без фильтров – все
+      setAllStudents(students);
+    } catch (err) {
+      console.error('Ошибка загрузки списка студентов:', err);
+    }
+  };
+  loadAllStudents();
+}, []);
+
   const getAggregatedData = () => {
     let agg = { totalRooms: 0, occupied: 0, partially: 0, free: 0, totalStudents: 0, departments: {} };
     selectedDorms.forEach(id => {
@@ -121,12 +137,50 @@ const Dashboard = ({ dormId, onBack, onLogout, onDownloadClick, userName }) => {
     return { agg, sortedFacs };
   };
 
+  const getStackedBarData = () => {
+  // Фильтруем студентов по выбранным общежитиям
+  const filteredStudents = allStudents.filter(s => selectedDorms.includes(s.dormitory));
+
+  // Группируем: { факультет: { категория: количество } }
+  const facultyFormMap = {};
+  filteredStudents.forEach(student => {
+    const dept = student.department || 'Без факультета';
+    const form = student.resident_category || 'Не указано';
+    if (!facultyFormMap[dept]) facultyFormMap[dept] = {};
+    facultyFormMap[dept][form] = (facultyFormMap[dept][form] || 0) + 1;
+  });
+
+  // Все факультеты (отсортированные по убыванию общего числа студентов)
+  const faculties = Object.keys(facultyFormMap);
+  faculties.sort((a, b) => {
+    const sumA = Object.values(facultyFormMap[a]).reduce((s, v) => s + v, 0);
+    const sumB = Object.values(facultyFormMap[b]).reduce((s, v) => s + v, 0);
+    return sumB - sumA;
+  });
+
+  // Все возможные категории (формы обучения)
+  const categories = [...new Set(filteredStudents.map(s => s.resident_category || 'Не указано'))];
+
+  // Формируем datasets
+  const datasets = categories.map(category => {
+    const data = faculties.map(f => facultyFormMap[f]?.[category] || 0);
+    return {
+      label: category,
+      data,
+      backgroundColor: getFormColor(category),   // функция цвета (см. ниже)
+      stack: 'stack1',
+      borderRadius: 4,
+    };
+  });
+
+  return { faculties, datasets };
+};
+
   const { agg, sortedFacs } = getAggregatedData();
 
-  // Текст заголовка и кнопки в зависимости от выбранных общежитий
   let titleText = selectedDorms.length === availableDorms.length ? "Общая статистика: Студгородок" :
-                  selectedDorms.length === 1 ? `Статистика: ${selectedDorms[0].replace('Общежитие ', 'Общ. №')}` :
-                  selectedDorms.length === 0 ? "Нет выбранных общежитий" : `Суммарная статистика (${selectedDorms.length} общ.)`;
+                  selectedDorms.length === 1 ? `Статистика: ${selectedDorms[0].replace('Общежитие ', 'Общещитие №')}` :
+                  selectedDorms.length === 0 ? "Нет выбранных общежитий" : `Статистика (${selectedDorms.length} общ.)`;
 
   let btnText = selectedDorms.length === 1 ? selectedDorms[0].replace('Общежитие ', 'Общ. №') :
                 selectedDorms.length === 0 ? "Выберите общежития" :
@@ -138,42 +192,61 @@ const Dashboard = ({ dormId, onBack, onLogout, onDownloadClick, userName }) => {
   };
 
   const pieOptions = {
-    responsive: true, maintainAspectRatio: false,
-    plugins: {
-      legend: { position: 'bottom', labels: { font: { size: 14 } } },
-      datalabels: {
-        color: '#ffffff', font: { weight: 'bold', size: 15.5 },
-        formatter: (value, context) => {
-          const dataset = context.chart.data.datasets[0].data;
-          const total = dataset.reduce((a, b) => a + b, 0);
-          return total > 0 && ((value / total) * 100) > 15 ? value : '';
+  responsive: true, maintainAspectRatio: false,
+  plugins: {
+    legend: { position: 'bottom', labels: { font: { size: 14 } } },
+    datalabels: {
+      color: '#ffffff', 
+      font: { weight: 'bold', size: 15.5 },
+      formatter: (value) => value > 0 ? value : ''   // теперь всегда показываем число, если > 0
+    }
+  }
+};
+
+  // Обычные данные (не stacked)
+const barDataSimple = {
+  labels: sortedFacs.map(f => f.label),
+  datasets: [{
+    data: sortedFacs.map(f => f.val),
+    backgroundColor: sortedFacs.map(f => facultyColors[f.label] || facultyColors.default),
+    borderRadius: 6,
+    borderWidth: 0,
+  }]
+};
+
+// Stacked данные
+const { faculties: stackedLabels, datasets: stackedDatasets } = isStackedMode && allStudents.length
+  ? getStackedBarData()
+  : { faculties: [], datasets: [] };
+
+const barData = isStackedMode && stackedDatasets.length
+  ? { labels: stackedLabels, datasets: stackedDatasets }
+  : barDataSimple;
+
+const barOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: isStackedMode
+      ? { position: 'top', labels: { font: { size: 12, weight: 'bold' } } }
+      : { display: false },
+    datalabels: isStackedMode
+      ? {
+          color: '#fff',
+          font: { weight: 'bold', size: 12 },
+          formatter: (value) => value > 0 ? value : '',
+          anchor: 'center',
+          align: 'center',
         }
-      }
-    }
-  };
-
-  const barData = {
-    labels: sortedFacs.map(f => f.label),
-    datasets: [{ 
-      data: sortedFacs.map(f => f.val), 
-      // Исправленная логика: берем цвет по названию факультета или default
-      backgroundColor: sortedFacs.map(f => facultyColors[f.label] || facultyColors.default), 
-      borderRadius: 6, 
-      borderWidth: 0 
-    }]
-  };
-
-  const barOptions = {
-    responsive: true, maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      datalabels: { color: '#37474f', anchor: 'end', align: 'top', font: { weight: 'bold', size: 14.5 } }
-    },
-    scales: {
-      y: { beginAtZero: true, grid: { color: '#eceff1' }, ticks: { font: { size: 13.5 } } },
-      x: { grid: { display: false }, ticks: { font: { size: 13.5 } } }
-    }
-  };
+      : { color: '#37474f', anchor: 'end', align: 'top', font: { weight: 'bold', size: 14.5 } },
+  },
+  scales: {
+    y: { beginAtZero: true, grid: { color: '#eceff1' }, ticks: { font: { size: 13.5 } } },
+    x: { grid: { display: false }, ticks: { font: { size: 13.5 }, rotation: isStackedMode ? 20 : 0 } },
+  },
+  // Для stacked bar нужно указать stacked true (делается через stack в dataset, но можно добавить глобально)
+  ...(isStackedMode && { scales: { y: { stacked: true }, x: { stacked: true } } }),
+};
 
   const downloadChart = (ref, filename) => {
     if (ref.current) {
@@ -191,13 +264,17 @@ const Dashboard = ({ dormId, onBack, onLogout, onDownloadClick, userName }) => {
     <>
       <div className="app-container">
         <main className="main-content">
-          <div className="header-row-dashboard">
-            <button style={{marginRight: 0}} className="back-btn-dashboard" onClick={onBack}>← Вернуться к списку</button>
-            <button className="dropdown-btn" onClick={onDownloadClick}>
-              СКАЧАТЬ ТАБЛИЦУ
-            </button>
-            <h1>{titleText}</h1>
-            <div className="dropdown-wrapper" ref={dropdownRef}>
+          <div className="dashboard-controls">
+            <div className="left-actions">
+              <button className="back-btn" onClick={onBack}>← Вернуться назад</button>
+              <button className="download-table-btn" onClick={onDownloadClick}>
+                Скачать таблицу
+              </button>
+            </div>
+
+            <h1 className="dashboard-title">{titleText}</h1>
+
+            <div className="right-filter" ref={dropdownRef}>
               <button className="dropdown-btn" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
                 {btnText}
               </button>
@@ -240,27 +317,45 @@ const Dashboard = ({ dormId, onBack, onLogout, onDownloadClick, userName }) => {
               </button>
             </div>
             <div className="chart-card">
-              <h3>Распределение студентов по факультетам</h3>
-              <div className="canvas-container">
-                <Bar data={barData} options={barOptions} plugins={[customBgPlugin]} ref={barRef} />
-              </div>
-              <button className="download-btn" onClick={() => downloadChart(barRef, 'faculty_chart.png')}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-              </button>
-            </div>
+  <div className="chart-header">
+    <h3>Распределение студентов по факультетам</h3>
+    <div className="chart-actions">
+      <button
+        className={`mode-toggle-btn ${isStackedMode ? 'active' : ''}`}
+        onClick={() => setStackedMode(!isStackedMode)}
+        title={isStackedMode ? "Показать обычную гистограмму" : "Показать распределение по формам обучения"}
+      >
+        {isStackedMode ? '📊 Обычный режим' : '📚 По формам обучения'}
+      </button>
+      <button className="download-btn" onClick={() => downloadChart(barRef, 'faculty_chart.png')}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+      </button>
+    </div>
+  </div>
+  <div className="canvas-container">
+    <Bar data={barData} options={barOptions} plugins={[customBgPlugin]} ref={barRef} />
+  </div>
+</div>
           </div>
 
           <div className="stats-row">
+            {/* Блок "Состояние комнат" – теперь содержит комнаты + фонд + заполненность */}
             <div className="stat-block">
               <h4>Состояние комнат</h4>
               <div className="dynamic-stat-list">
                 <div className="stat-line"><span>Полностью занятые:</span> <span className="stat-val" style={{ color: '#e53935' }}>{agg.occupied}</span></div>
                 <div className="stat-line"><span>Частично занятые:</span> <span className="stat-val" style={{ color: '#ffb300' }}>{agg.partially}</span></div>
                 <div className="stat-line"><span>Свободные:</span> <span className="stat-val" style={{ color: '#43a047' }}>{agg.free}</span></div>
-                <div className="stat-line"><span>Всего студентов:</span> <span className="stat-val">{agg.totalStudents}</span></div>
+                <div className="stat-line"><span>Всего комнат (фонд):</span> <span className="stat-val">{agg.totalRooms}</span></div>
+                <div className="stat-line"><span>Общая заполненность (по комнатам):</span> <span className="stat-val">{agg.totalRooms > 0 ? Math.round(((agg.occupied + agg.partially) / agg.totalRooms) * 100) : 0}%</span></div>
               </div>
             </div>
 
+            {/* Блок "Проживающие по факультетам" – без изменений */}
             <div className="stat-block">
               <h4>Проживающие по факультетам</h4>
               <div className="dynamic-stat-list">
@@ -291,11 +386,11 @@ const Dashboard = ({ dormId, onBack, onLogout, onDownloadClick, userName }) => {
               </div>
             </div>
 
+            {/* Блок "Дополнительная информация" – теперь только общее число студентов */}
             <div className="stat-block">
               <h4>Дополнительная информация</h4>
               <div className="dynamic-stat-list">
-                <div className="stat-line"><span>Всего комнат (фонд):</span> <span className="stat-val">{agg.totalRooms}</span></div>
-                <div className="stat-line"><span>Общая заполненность (по комнатам):</span> <span className="stat-val">{agg.totalRooms > 0 ? Math.round(((agg.occupied + agg.partially) / agg.totalRooms) * 100) : 0}%</span></div>
+                <div className="stat-line"><span>Всего студентов:</span> <span className="stat-val">{agg.totalStudents}</span></div>
               </div>
             </div>
           </div>
