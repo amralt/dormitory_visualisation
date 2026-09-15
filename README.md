@@ -22,7 +22,7 @@ cd dormitory_visualisation
 скачайте её из https://drive.google.com/file/d/1ex4iBBagW_xEjkbUAyxxZnGasoHCkVF4/view?usp=sharing и вставьте в папку backend
 
 ### 4. Запуск проекта:
-`dockuer-compose up --build`
+`docker-compose up --build`
 
 🧱 Структура проекта
 text
