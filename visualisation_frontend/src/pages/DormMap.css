@@ -201,24 +201,6 @@ body {
     background: rgba(255,255,255,0.3);
 }
 
-.header-filter-dropdown {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    margin-top: 10px;
-    background: white;
-    color: var(--text-main);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-    padding: 15px;
-    width: 220px;
-    z-index: 1002;
-    display: none;
-    flex-direction: column;
-    gap: 10px;
-    text-align: left;
-}
 
 .header-filter-dropdown.show {
     display: flex;
@@ -677,4 +659,93 @@ svg {
     border-color: #1e88e5;
     transform: translateY(-1px);
     transition: all 0.15s ease;
+}
+/* Режим отображения и легенда */
+.view-mode-legend {
+  position: absolute;
+  bottom: 100px;
+  right: 25px;          /* чтобы не наезжать на floor-switcher (ширина ~110px + отступы) */
+  background: rgba(255,255,255,0.95);
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 180px;
+}
+
+.view-mode-switcher {
+  display: flex;
+  gap: 4px;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 8px 10px;
+  border: 2px solid var(--border-color);
+  background: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  transition: 0.2s;
+}
+
+.mode-btn.active {
+  background: var(--room-selected);
+  color: white;
+  border-color: var(--room-selected);
+}
+
+.mode-btn:hover:not(.active) {
+  background: #f0f2f5;
+}
+
+.legend h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: var(--text-main);
+  border-bottom: 1px solid #eceff1;
+  padding-bottom: 4px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.color-box {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  border: 1px solid rgba(0,0,0,0.2);
+  flex-shrink: 0;
+}
+
+.legend-label {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* --- ПОДСВЕТКА ВЫБРАННОЙ КОМНАТЫ --- */
+/* Применяем стили обводки ко всем фигурам внутри выбранной группы */
+.map-room.status-selected rect,
+.map-room.status-selected path,
+.map-room.status-selected polygon {
+  stroke: #007bff !important; /* Яркий синий цвет выделения */
+  stroke-width: 5px !important; /* Толщина линии */
+  filter: drop-shadow(0px 0px 6px rgba(0, 123, 255, 0.8)); /* Эффект свечения */
+  transition: stroke 0.3s ease, filter 0.3s ease;
+}
+
+/* --- ПОДСВЕТКА ВЫБРАННОЙ КРОВАТИ --- */
+.bed.bed-selected {
+  stroke: #007bff !important;
+  stroke-width: 4px !important;
+  filter: drop-shadow(0px 0px 5px rgba(0, 123, 255, 0.8));
+  transition: stroke 0.3s ease, filter 0.3s ease;
 }
